@@ -19,49 +19,65 @@ well fed and well hydrated. Maybe it's a health boost, and they lose health when
 contact with the danger. Or -- the danger is radioactive and extends across the whole board,
 and sucks their health down.
 
-### ON HOW TO ENSURE THERE ARE ALWAYS SOME LIFEFORMS
+### ON HOW TO ENSURE A BOUNDED QUANTITY OF LIFEFORMS
 
-An LF can self replicate?
-It can self replicate at a rate that is inversely relative to how many LFs there are on the board?
-Maybe if there's a minimum threshold of LFs, then the fittest ones self replicate with some higher
-than usual mutation rate!??
-Maybe there's limited food and water?
-Maybe they can kill each other, but they lose health when they do? That way it's balanced when it
-gets overcrowded it becomes advantageous to kill?
+* If there's a minimum threshold of LFs, the LFs self replicate with some higher degree of mutation
+    (So in the beginning, it's a lot of different random LFs, until some start actually working
+    with the physics)
+* There's limited food and water (So if there's too much, the LFs won't all be able to survive)
+* LF's can attack other LFs (Ensuring it's not random survival based on who's closest to food and
+  water)
 
-## PHYSICAL LIMITS ON EACH LIFEFORM
-
-There have to be physical limits based on each lifeform's stats, too.
-
-* The stronger, the slower?
--- OR --
-* Being more well fed makes them slower
-* Being thirsty makes them slower
-
-Do we even have speed? It'd be easier if they could just move one space per turn
+### PHYSICS
 
 * When health hits 0, LF dies (leaving food behind?)
 * Health degrades at inverse square from distance to danger plus a constant rate
 * Mating increases health at a rate proportional to the health of the other LF
 * Hunger increases rate of health drop
-* Thirst sharply increases rate of health drop, -- or -- does it inhibit clarity of input neurons?
+* Thirst inhibits clarity of input neurons
+* Attacking halves both LFs health or something
 
-## INPUT NEURONS
+* LF can only eat if adjacent to food
+* LF can only drink if adjacent to water
+* LF can only attack if adjacent to LF
+* LF can only mate if adjacent to LF
+
+* LF can only mate so often (to prevent mating clumps around the food)
+* If LF tries to mate next to multiple LFs, the LF with the lowest health will be mated with (To prevent orgy clumps (local minima))
+
+* ~~Moving increases the LF's hunger and thirst a small amount~~ (Don't want to optimize for boring)
+
+### INPUT NEURONS
 * Direction to food
+* Distance to food
 * Direction to water
+* Distance to water
+* Direction to danger
+* Distance to danger
 * Direction to healthiest LF
 * Direction to closest LF
-* Direction to danger
 * Healthiest LF's health
 * Closest LF's health
 * LF's health
 * LF's hunger
 * LF's thirst
 * Total number of LFs
+* Number of LFs adjacent to LF
 
-## OUTPUT NEURONS
+### OUTPUT NEURONS
 * Move up
 * Move down
 * Move right
 * Move left
-*
+* Attack
+* Mate
+* Eat
+* Drink
+
+
+## Program Features
+
+* Have another SQLite DB that allows for a single board to pause and continue its evolution
+* Have a visual representation of the board
+* Have a graph next to it that shows stats for specific LFs?
+* It'd be nice to have multiple threads working together to render each frame, rather than each working on their own board
