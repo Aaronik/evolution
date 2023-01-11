@@ -12,6 +12,7 @@ pub struct World {
     pub danger: Vec<(usize, usize)>,
     pub mutation_rate: f32,
     oscillator: f32,
+    tics: usize,
 }
 
 pub struct WorldProps {
@@ -82,38 +83,23 @@ impl World {
             danger,
             lifeforms,
             oscillator: 0.0,
+            tics: 0,
         }
+    }
+
+    pub fn step(&mut self) {
+        self.tics += 1;
+        self.oscillator = (self.tics as f32 / 10.0).sin();
     }
 
     /// Go through each lifeform and update the inputs for their neural_nets
     pub fn update_inputs(&mut self) {
-        // Update the oscillator. Easiest to just jump back from one to zero.
-        // If it'd be better to have a smooth transition, could use a trig function
-        // and a frame counter.
-        if self.oscillator < 1.0 {
-            self.oscillator += 0.1;
-        } else {
-            self.oscillator = 0.0;
-        }
-
         let (hlthst_lf_health, hlthst_lf_loc) = self.healthiest_lifeform_info();
-
-        // TODO Since there's a method to consume this, this should probably be in its own method
-        // to create it.
-        let lfs_id_loc_health: Vec<(usize, (usize, usize), f32)> = self
-            .lifeforms
-            .values()
-            .map(|(location, lifeform)| (lifeform.id, *location, lifeform.health))
-            .collect();
-
+        let lfs_id_loc_health = generate_lifeform_info_vec(&self.lifeforms);
         let num_lifeforms = self.lifeforms.len();
         let size = self.size;
 
         for (lifeform_id, (loc, lifeform)) in self.lifeforms.iter_mut() {
-            // TODO Eventually we probably want to just go through all our stuff
-            // ONE TIME and extract all the info, like closest food and water and danger,
-            // closest lifeform, etc. Especially for the lifeforms, we don't want to iterate
-            // over them many times.
             let closest_food = closest_to(&loc, &self.food);
             let closest_wat = closest_to(&loc, &self.water);
             let closest_dang = closest_to(&loc, &self.danger);
@@ -160,6 +146,17 @@ impl World {
 
         (healthiest_lifeform_health, healthiest_lifeform_location)
     }
+}
+
+/// Generates a vec that has a very specific set of information relative to a lifeform, to be used
+/// later on with the close_lifeform_info_from_info_vec function
+fn generate_lifeform_info_vec(
+    lifeforms: &HashMap<usize, ((usize, usize), LifeForm)>,
+) -> Vec<(usize, (usize, usize), f32)> {
+    lifeforms
+        .values()
+        .map(|(location, lifeform)| (lifeform.id, *location, lifeform.health))
+        .collect()
 }
 
 /// TODO explain
