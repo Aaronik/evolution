@@ -4,6 +4,7 @@ use evolution::*;
 // * Food/water auto generation
 // * If food/water will use a frame ticker, move oscillator to use that too
 // * Enable physics
+// * Output neurons to have effects
 
 fn main() {
     let world_props = WorldProps {
