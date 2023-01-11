@@ -17,6 +17,7 @@ fn main() {
         num_inner_neurons: 5,
     };
 
-    World::new(world_props);
+    let mut world = World::new(world_props);
+    world.step();
 }
 

@@ -89,10 +89,11 @@ impl World {
     pub fn step(&mut self) {
         self.tics += 1;
         self.oscillator = (self.tics as f32 / 10.0).sin();
+        self.update_inputs();
     }
 
     /// Go through each lifeform and update the inputs for their neural_nets
-    pub fn update_inputs(&mut self) {
+    fn update_inputs(&mut self) {
         let (hlthst_lf_health, hlthst_lf_loc) = self.healthiest_lifeform_info();
         let lfs_id_loc_health = generate_lifeform_info_vec(&self.lifeforms);
         let num_lifeforms = self.lifeforms.len();
@@ -159,7 +160,6 @@ fn generate_lifeform_info_vec(
         .collect()
 }
 
-/// TODO explain
 /// Takes id and location of the thing you're trying to find the closest other thing to, very
 /// specificly constructed vector
 /// Returns (
@@ -220,21 +220,25 @@ fn closest_to(subject: &(usize, usize), objects: &Vec<(usize, usize)>) -> (usize
 
 // TODO Test this beast too
 fn dist_abs(from: &(usize, usize), to: &(usize, usize)) -> f32 {
-    let (x1, y1) = from;
-    let (x2, y2) = to;
+    let x1 = from.0 as f32;
+    let y1 = from.1 as f32;
+    let x2 = to.0 as f32;
+    let y2 = to.0 as f32;
 
-    (((x2 - x1) ^ 2 + (y2 - y1) ^ 2) as f32).sqrt() as f32
+    (((x2 - x1).powi(2) + (y2 - y1).powi(2))).sqrt()
 }
 
 // TODO Test this beast, document differences
 fn dist_rel(world_size: usize, from: &(usize, usize), to: &(usize, usize)) -> f32 {
-    let (x1, y1) = from;
-    let (x2, y2) = to;
+    let x1 = from.0 as f32;
+    let y1 = from.1 as f32;
+    let x2 = to.0 as f32;
+    let y2 = to.0 as f32;
 
-    let farthest_possible = ((2 * (world_size ^ 2)) as f32).sqrt() as f32;
+    let farthest_possible = ((2 * (world_size ^ 2)) as f32).sqrt();
 
     // root((x2 - x1)^2 + (y2 - y1)^2)
-    let total_distance = (((x2 - x1) ^ 2 + (y2 - y1) ^ 2) as f32).sqrt() as f32;
+    let total_distance = (((x2 - x1).powi(2) + (y2 - y1).powi(2))).sqrt();
 
     total_distance / farthest_possible
 }
@@ -247,8 +251,10 @@ fn dist_rel(world_size: usize, from: &(usize, usize), to: &(usize, usize)) -> f3
 /// 1.00 for west
 /// 0.00 for same point
 fn direc(from: &(usize, usize), to: &(usize, usize)) -> f32 {
-    let (x1, y1) = from;
-    let (x2, y2) = to;
+    let x1 = from.0 as f32;
+    let y1 = from.1 as f32;
+    let x2 = to.0 as f32;
+    let y2 = to.0 as f32;
 
     // Ok it's easy to find ourselves in the four quadrants by comparing the x's and y's.
     // To get into the octants, within each quadrant, we can test the differences b/t x's and
