@@ -7,4 +7,5 @@ pub struct LifeForm {
     pub neural_net: NeuralNet,
     pub hunger: f32, // 0 - 1
     pub thirst: f32, // 0 - 1
+    pub location: (usize, usize),
 }

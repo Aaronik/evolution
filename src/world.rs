@@ -4,7 +4,7 @@ use std::collections::HashMap;
 
 pub struct World {
     pub size: usize,
-    pub lifeforms: HashMap<usize, ((usize, usize), LifeForm)>,
+    pub lifeforms: HashMap<usize, LifeForm>,
     pub food: Vec<(usize, usize)>,
     pub food_density: usize, // After how many frames does a new food appear
     pub water: Vec<(usize, usize)>,
@@ -54,17 +54,16 @@ impl World {
 
             lifeforms.insert(
                 lifeform_id,
-                (
-                    (0, lifeform_id), // Each lifeform will start out next to each other for now
-                    LifeForm {
-                        id: lifeform_id,
-                        health: 1.0,
-                        genome,
-                        neural_net,
-                        hunger: 0.0,
-                        thirst: 0.0,
-                    },
-                ),
+                LifeForm {
+                    id: lifeform_id,
+                    health: 1.0,
+                    genome,
+                    neural_net,
+                    hunger: 0.0,
+                    thirst: 0.0,
+                    location: (0, lifeform_id), // Each lifeform will start out next to each
+                                                // other for now
+                },
             );
         }
 
@@ -99,22 +98,23 @@ impl World {
         let num_lifeforms = self.lifeforms.len();
         let size = self.size;
 
-        for (lifeform_id, (loc, lifeform)) in self.lifeforms.iter_mut() {
-            let closest_food = closest_to(&loc, &self.food);
-            let closest_wat = closest_to(&loc, &self.water);
-            let closest_dang = closest_to(&loc, &self.danger);
+        for (lifeform_id, lifeform) in self.lifeforms.iter_mut() {
+            let closest_food = &closest_to(&lifeform.location, &self.food);
+            let closest_wat = &closest_to(&lifeform.location, &self.water);
+            let closest_dang = &closest_to(&lifeform.location, &self.danger);
+            let loc = &lifeform.location;
 
             let (num_in_vicinity, closest_lf_health, closest_lf_loc, closest_lf_distance) =
                 close_lifeform_info_from_info_vec(lifeform_id, loc, &lfs_id_loc_health);
 
             for (_nid, (neuron_type, neuron)) in lifeform.neural_net.input_neurons.iter_mut() {
                 neuron.value = match neuron_type {
-                    InputNeuronType::DirectionToFood => direc(loc, &closest_food),
-                    InputNeuronType::DistanceToFood => dist_rel(size, loc, &closest_food),
-                    InputNeuronType::DirectionToWater => direc(loc, &closest_wat),
-                    InputNeuronType::DistanceToWater => dist_rel(size, loc, &closest_wat),
-                    InputNeuronType::DirectionToDanger => direc(loc, &closest_dang),
-                    InputNeuronType::DistanceToDanger => dist_rel(size, loc, &closest_dang),
+                    InputNeuronType::DirectionToFood => direc(loc, closest_food),
+                    InputNeuronType::DistanceToFood => dist_rel(size, loc, closest_food),
+                    InputNeuronType::DirectionToWater => direc(loc, closest_wat),
+                    InputNeuronType::DistanceToWater => dist_rel(size, loc, closest_wat),
+                    InputNeuronType::DirectionToDanger => direc(loc, closest_dang),
+                    InputNeuronType::DistanceToDanger => dist_rel(size, loc, closest_dang),
                     InputNeuronType::DirectionToHealthiestLF => direc(loc, &hlthst_lf_loc),
                     InputNeuronType::DistanceToHealthiestLF => dist_rel(size, loc, &hlthst_lf_loc),
                     InputNeuronType::HealthiestLFHealth => hlthst_lf_health,
@@ -137,10 +137,10 @@ impl World {
     fn healthiest_lifeform_info(&self) -> (f32, (usize, usize)) {
         let mut healthiest_lifeform_health = 0.0;
         let mut healthiest_lifeform_location: (usize, usize) = (0, 0);
-        for (location, lifeform) in self.lifeforms.values() {
+        for lifeform in self.lifeforms.values() {
             if lifeform.health > healthiest_lifeform_health {
                 healthiest_lifeform_health = lifeform.health;
-                healthiest_lifeform_location = *location;
+                healthiest_lifeform_location = lifeform.location;
             }
         }
 
@@ -151,11 +151,11 @@ impl World {
 /// Generates a vec that has a very specific set of information relative to a lifeform, to be used
 /// later on with the close_lifeform_info_from_info_vec function
 fn generate_lifeform_info_vec(
-    lifeforms: &HashMap<usize, ((usize, usize), LifeForm)>,
+    lifeforms: &HashMap<usize, LifeForm>,
 ) -> Vec<(usize, (usize, usize), f32)> {
     lifeforms
         .values()
-        .map(|(location, lifeform)| (lifeform.id, *location, lifeform.health))
+        .map(|lifeform| (lifeform.id, lifeform.location, lifeform.health))
         .collect()
 }
 
