@@ -2,9 +2,9 @@ use evolution::*;
 
 // TODO
 // * Food/water auto generation
-// * If food/water will use a frame ticker, move oscillator to use that too
 // * Enable physics
-// * Output neurons to have effects
+// * Based on input neurons and genes, calculate output neuron likelihoods
+// * Make output neuron effects
 
 fn main() {
     let world_props = WorldProps {

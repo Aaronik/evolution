@@ -89,6 +89,51 @@ impl World {
     pub fn step(&mut self) {
         self.tics += 1;
         self.oscillator = (self.tics as f32 / 10.0).sin();
+
+        // Update food and water
+        if self.tics % self.food_density == 0 {
+            self.food.push((
+                thread_rng().gen_range(0..self.size),
+                thread_rng().gen_range(0..self.size),
+            ));
+        }
+
+        if self.tics % self.water_density == 0 {
+            self.water.push((
+                thread_rng().gen_range(0..self.size),
+                thread_rng().gen_range(0..self.size),
+            ));
+        }
+
+        let mut has_died = vec![];
+
+        // do effects of environment on lifeforms
+        for (_, lifeform) in self.lifeforms.iter_mut() {
+            let dist_to_danger = dist_abs(&lifeform.location, &self.danger[0]);
+
+            lifeform.hunger += 0.00001;
+            lifeform.thirst += 0.00001;
+
+            lifeform.health -= lifeform.hunger;
+
+            // TODO Eventually want this to have a more cool effect, like inihibiting
+            // the accuracy of input neurons. Not MVP though, but totally doable by having
+            // a function that wraps input neuron assignment and kind of randomly jacks the
+            // number proportional to the thirst level of the creature. Will be interesting to
+            // see how that evolves relative to having it be the same as hunger.
+            lifeform.health -= lifeform.thirst;
+
+            lifeform.health -= 1.0 / dist_to_danger.powi(2);
+
+            if lifeform.health <= 0.0 {
+                has_died.push(lifeform.id)
+            }
+        }
+
+        for id in has_died {
+            self.lifeforms.remove(&id);
+        }
+
         self.update_inputs();
     }
 
@@ -225,7 +270,7 @@ fn dist_abs(from: &(usize, usize), to: &(usize, usize)) -> f32 {
     let x2 = to.0 as f32;
     let y2 = to.0 as f32;
 
-    (((x2 - x1).powi(2) + (y2 - y1).powi(2))).sqrt()
+    ((x2 - x1).powi(2) + (y2 - y1).powi(2)).sqrt()
 }
 
 // TODO Test this beast, document differences
@@ -238,7 +283,7 @@ fn dist_rel(world_size: usize, from: &(usize, usize), to: &(usize, usize)) -> f3
     let farthest_possible = ((2 * (world_size ^ 2)) as f32).sqrt();
 
     // root((x2 - x1)^2 + (y2 - y1)^2)
-    let total_distance = (((x2 - x1).powi(2) + (y2 - y1).powi(2))).sqrt();
+    let total_distance = ((x2 - x1).powi(2) + (y2 - y1).powi(2)).sqrt();
 
     total_distance / farthest_possible
 }
