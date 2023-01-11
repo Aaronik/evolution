@@ -7,3 +7,6 @@ edition = "2021"
 
 [dependencies]
 console_engine = "2.5.0"
+rand = "0.8.5"
+strum = "0.24.1"
+strum_macros = "0.24.3"

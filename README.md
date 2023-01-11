@@ -2,6 +2,8 @@
 
 Ecosystem Simulation
 
+Based off of this amazing youtube video: https://youtu.be/N3tRFayqVtk?t=1433
+
 I want to make a more complex evolutionary thing, using individual little entities that each
 have a neural net that evolves to create their behavior
 
@@ -63,6 +65,8 @@ and sucks their health down.
 * LF's thirst
 * Total number of LFs
 * Number of LFs adjacent to LF
+* Random
+* Oscillator
 
 ### OUTPUT NEURONS
 * Move up
@@ -81,3 +85,13 @@ and sucks their health down.
 * Have a visual representation of the board
 * Have a graph next to it that shows stats for specific LFs?
 * It'd be nice to have multiple threads working together to render each frame, rather than each working on their own board
+
+## Organization
+
+At every frame, we go through each LF's input neurons and give them their values. Then we do the calculation phase, which is as follows:
+
+Each internal neuron sums up the weights of the neurons connecting to it, then runs tanh (hyporbolic tangent) on that sum to get it between -1.0 and 1.0.
+Each output neuron does the same
+
+If the output neuron ends up being b/t 0 and 1, use that as a likelihood of firing (so 0.2 would be a 20% chance of firing), where firing means performing the effect.
+
