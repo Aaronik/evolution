@@ -67,28 +67,26 @@ impl NeuralNetHelper {
         // -- Generate Neurons
 
         for (idx, neuron_member) in InputNeuronType::iter().enumerate() {
-            let neuron = InputNeuron {
-                // Assuming there'll never be more than 100 input neuron types, we'll do this
-                // to assure a different id from the output neurons
-                id: idx + 100,
-
-                // TODO should this be random, or..?
-                value: 0.0,
-            };
-            input_neurons.insert(neuron.id, (neuron_member, neuron));
-            neuron_type_map.insert(neuron.id, NeuronType::InputNeuron);
+            // Assuming there'll never be more than 100 input neuron types, we'll do this
+            // to assure a different id from the output neurons
+            let id = idx + 100;
+            let neuron = InputNeuron { id, value: 0.0 };
+            input_neurons.insert(id, (neuron_member, neuron));
+            neuron_type_map.insert(id, NeuronType::InputNeuron);
         }
 
         for idx in 0..num_inner_neurons {
-            let neuron = InnerNeuron { id: idx + 200 };
-            inner_neurons.insert(neuron.id, neuron);
-            neuron_type_map.insert(neuron.id, NeuronType::InnerNeuron);
+            let id = idx + 200;
+            let neuron = InnerNeuron { id };
+            inner_neurons.insert(id, neuron);
+            neuron_type_map.insert(id, NeuronType::InnerNeuron);
         }
 
         for (idx, neuron_member) in OutputNeuronType::iter().enumerate() {
-            let neuron = OutputNeuron { id: idx + 300 };
-            output_neurons.insert(neuron.id, (neuron_member, neuron));
-            neuron_type_map.insert(neuron.id, NeuronType::OutputNeuron);
+            let id = idx + 300;
+            let neuron = OutputNeuron { id };
+            output_neurons.insert(id, (neuron_member, neuron));
+            neuron_type_map.insert(id, NeuronType::OutputNeuron);
         }
 
         // -- Generate Neuron Ids
@@ -100,41 +98,41 @@ impl NeuralNetHelper {
         // -- Generate Neuron Id HashSets
 
         // (input_neuron_id, output_neuron_id)
-        let input_output: HashSet<(usize, usize)> = HashSet::new();
+        let mut input_output: HashSet<(usize, usize)> = HashSet::new();
 
-        for input_neuron_id in input_neuron_ids {
-            for output_neuron_id in output_neuron_ids {
-                input_output.insert((input_neuron_id, output_neuron_id));
+        for input_neuron_id in &input_neuron_ids {
+            for output_neuron_id in &output_neuron_ids {
+                input_output.insert((input_neuron_id.clone(), output_neuron_id.clone()));
             }
         }
 
         // (inner_neuron_id, output_neuron_id)
-        let inner_output: HashSet<(usize, usize)> = HashSet::new();
+        let mut inner_output: HashSet<(usize, usize)> = HashSet::new();
 
-        for inner_neuron_id in inner_neuron_ids {
-            for output_neuron_id in output_neuron_ids {
-                inner_output.insert((inner_neuron_id, output_neuron_id));
+        for inner_neuron_id in &inner_neuron_ids {
+            for output_neuron_id in &output_neuron_ids {
+                inner_output.insert((inner_neuron_id.clone(), output_neuron_id.clone()));
             }
         }
 
-        let inner_output_neuron_ids = inner_neuron_ids.clone();
+        let mut inner_output_neuron_ids = inner_neuron_ids.clone();
         inner_output_neuron_ids.append(&mut output_neuron_ids.clone());
 
         // (input_neuron_id, inner_neuron_id AND output_neuron_id)
-        let input_inner_output: HashSet<(usize, usize)> = HashSet::new();
+        let mut input_inner_output: HashSet<(usize, usize)> = HashSet::new();
 
-        for input_neuron_id in input_neuron_ids {
-            for inner_output_neuron_id in inner_output_neuron_ids {
-                input_inner_output.insert((input_neuron_id, inner_output_neuron_id));
+        for input_neuron_id in &input_neuron_ids {
+            for inner_output_neuron_id in &inner_output_neuron_ids {
+                input_inner_output.insert((input_neuron_id.clone(), inner_output_neuron_id.clone()));
             }
         }
 
         // (inner_neuron_id, inner_neuron_id AND output_neuron_id)
-        let inner_inner_output: HashSet<(usize, usize)> = HashSet::new();
+        let mut inner_inner_output: HashSet<(usize, usize)> = HashSet::new();
 
-        for inner_neuron_id in inner_neuron_ids {
-            for inner_output_neuron_id in inner_output_neuron_ids {
-                inner_inner_output.insert((inner_neuron_id, inner_output_neuron_id));
+        for inner_neuron_id in &inner_neuron_ids {
+            for inner_output_neuron_id in &inner_output_neuron_ids {
+                inner_inner_output.insert((inner_neuron_id.clone(), inner_output_neuron_id.clone()));
             }
         }
 
@@ -158,19 +156,33 @@ impl NeuralNetHelper {
 
         // Clone HashMaps
         let mut input_neurons = HashMap::new();
-        let mut output_neurons = HashMap::new();
         let mut inner_neurons = HashMap::new();
+        let mut output_neurons = HashMap::new();
 
-        for (key, val) in self.input_neurons.iter() {
-            input_neurons.insert(*key, *val);
+        for (_, val) in self.input_neurons.iter() {
+            let (typ, neur) = val;
+
+            let neuron = InputNeuron {
+                id: neur.id.clone(),
+                value: neur.value.clone(),
+            };
+
+            input_neurons.insert(neuron.id, (typ.clone(), neuron));
         }
 
-        for (key, val) in self.inner_neurons.iter() {
-            inner_neurons.insert(*key, *val);
+        for (id, _) in self.inner_neurons.iter() {
+            let neuron = InnerNeuron { id: *id };
+            inner_neurons.insert(*id, neuron);
         }
 
-        for (key, val) in self.output_neurons.iter() {
-            output_neurons.insert(*key, *val);
+        for (_, val) in self.output_neurons.iter() {
+            let (typ, neur) = val;
+
+            let neuron = OutputNeuron {
+                id: neur.id.clone(),
+            };
+
+            output_neurons.insert(neuron.id, (typ.clone(), neuron));
         }
 
         NeuralNet {
@@ -188,7 +200,7 @@ pub struct NeuralNet {
     pub output_neurons: HashMap<usize, (OutputNeuronType, OutputNeuron)>,
 }
 
-#[derive(Debug, EnumIter)]
+#[derive(Debug, EnumIter, Clone)]
 pub enum InputNeuronType {
     DirectionToFood,
     DistanceToFood,
@@ -211,14 +223,14 @@ pub enum InputNeuronType {
     Oscillator,
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct InputNeuron {
     // TODO One struct per type?
     pub id: usize,
     pub value: f32, // 0.0 - 1.0
 }
 
-#[derive(Debug, EnumIter)]
+#[derive(Debug, EnumIter, Clone)]
 pub enum OutputNeuronType {
     MoveUp,
     MoveDown,
@@ -240,7 +252,7 @@ pub struct InnerNeuron {
     pub id: usize,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum NeuronType {
     InputNeuron,
     InnerNeuron,
