@@ -105,6 +105,12 @@ pub struct Gene {
     pub weight: f32, // (-4.0 - 4.0)
 }
 
+// Issues:
+// * You can't have two of the same from/to pair
+
+// TODO
+// * Maybe instead of Gene, this is a Genome that spawns Genes. Then easy track
+// could be kept of which from/to pairs are used.
 impl Gene {
     pub fn new(from: usize, to: usize, weight: f32) -> Self {
         Self { from, to, weight }
