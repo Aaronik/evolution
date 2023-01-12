@@ -11,12 +11,12 @@ pub struct LifeForm {
 }
 
 impl LifeForm {
-    pub fn new(id: usize, genome_size: usize, num_inner_neurons: usize) -> Self {
-        let neural_net = NeuralNet::new(num_inner_neurons);
+    pub fn new(id: usize, genome_size: usize, neural_net_helper: NeuralNetHelper) -> Self {
+        let neural_net = neural_net_helper.spawn();
 
         let genome_props = GenomeProps {
             size: genome_size,
-            neural_net: &neural_net,
+            neural_net_helper: &neural_net_helper,
         };
 
         let mut genome = Genome::new(genome_props);

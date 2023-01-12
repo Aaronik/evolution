@@ -13,6 +13,7 @@ pub struct World {
     pub mutation_rate: f32,
     oscillator: f32,
     tics: usize,
+    neural_net_helper: NeuralNetHelper,
 }
 
 pub struct WorldProps {
@@ -27,13 +28,15 @@ pub struct WorldProps {
 
 impl World {
     pub fn new(props: WorldProps) -> Self {
+        let neural_net_helper = NeuralNetHelper::new(props.num_inner_neurons);
+
         // LifeForm generation
         let mut lifeforms = HashMap::new();
 
         for lifeform_id in 0..props.num_initial_lifeforms {
             lifeforms.insert(
                 lifeform_id,
-                LifeForm::new(lifeform_id, props.genome_size, props.num_inner_neurons),
+                LifeForm::new(lifeform_id, props.genome_size, neural_net_helper),
             );
         }
 
@@ -47,6 +50,7 @@ impl World {
             food_density: props.food_density,
             water_density: props.water_density,
             mutation_rate: props.mutation_rate,
+            neural_net_helper,
             food,
             water,
             danger,
