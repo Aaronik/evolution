@@ -21,17 +21,6 @@ impl LifeForm {
 
         let mut genome = Genome::new(genome_props);
 
-        // TODO This whole loop is gonna be gone and the bs processed_genome method
-        // is kaputz and Genome::new is going to take care of all of that efficiently.
-        loop {
-            let (is_valid, processed_genome) = LifeForm::process_genome(genome);
-
-            if is_valid {
-                genome = processed_genome;
-                break;
-            }
-        }
-
         Self {
             id,
             genome,
@@ -41,35 +30,6 @@ impl LifeForm {
             thirst: 0.0,
             location: (0, id),
         }
-    }
-
-    // TODO This is also inefficient. If this could be moved to genome and proactively
-    // built up instead of retroactively enforced we'd save statistically some time on lifeform
-    // generation.
-    // Returns a tuple of whether the genome is valid, and the genome itself.
-    // Processing will happen on the genome to remove genes that will have no
-    // effect.
-    fn process_genome(neural_net: &NeuralNet, genome: Genome) -> (bool, Genome) {
-        // * Remove all genes that come from an inner neuron that has no input.
-        // * If there are no genes left, lifeform is invalid.
-
-        // If there are no genes from input neurons OR no genes to
-        // output neurons, the lifeform is invalid.
-        if genome.input_genes.len() == 0 {
-            return (false, genome);
-        }
-
-        if genome.output_genes.len() == 0 {
-            return (false, genome);
-        }
-
-        // Remove all genes that lead to an inner neuron that has no output (no genes have a from
-        // for that inner neuron)
-        // Go through each inner neuron in the neural net:
-        // * If there're no genes with a FROM value of the neuron's id:
-        //  * Remove all genes with a TO value to that neuron's id
-        genome.out
-
     }
 
     /// returns a list of probablities associated with output neuron types

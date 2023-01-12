@@ -134,6 +134,23 @@ impl Genome {
         // from id, to id
         let duplicate_prevention_set: HashSet<(usize, usize)> = HashSet::new();
 
+        let mut starting_id: Option<usize> = None;
+
+        let num_genes_left =
+            || props.size - (&input_genes.len() + &inner_genes.len() + &output_genes.len());
+
+        let random_output_neuron_id = || {
+            let idx = thread_rng().gen_range(0..output_neuron_ids.len());
+            output_neuron_ids[idx]
+        };
+
+        let random_inner_output_neuron_id = || {
+            let idx = thread_rng().gen_range(0..inner_output_neuron_ids.len());
+            inner_output_neuron_ids[idx]
+        };
+
+        let random_weight = || thread_rng().gen_range(-4.0..=4.0);
+
         // TODO Right now we're validating the genes heavily within the lifeform.
         // Instead, I'd much rather proactively create a valid structure here.
         //
@@ -167,24 +184,49 @@ impl Genome {
         //    * Add it to output_genes
         //    * continue;
 
-        // To prevent duplicate genes.
-        // TODO This isn't the most efficient practice. If the number of
-        // genes starts to approach the number of neurons we have, we're going to start having
-        // a lot of collisions and this could take who knows long.
-        while duplicate_prevention_set.len() < props.size {
-            let gene = Gene::new_random(input_neuron_ids, inner_neuron_ids, output_neuron_ids);
+        loop {
+            if let Some(from) = starting_id {
+                if num_genes_left() == 1 {
+                    let to = random_output_neuron_id();
+                    let weight = random_weight();
+                    output_genes.push(Gene { from, to, weight });
+                    break;
+                } else {
+                    let to = random_inner_output_neuron_id();
+                    let to_type = props.neural_net.neuron_type_map[&to];
+                    let weight = random_weight();
 
-            let is_unique = duplicate_prevention_set.insert((gene.from, gene.to));
+                    if let NeuronType::InnerNeuron = to_type {
+                        inner_genes.push(Gene { from, to, weight });
+                        starting_id = Some(to);
+                        continue;
+                    } else if let NeuronType::OutputNeuron = to_type {
+                        output_genes.push(Gene { from, to, weight });
+                        starting_id = None;
+                        continue;
+                    }
+                }
+            } else {
+                if num_genes_left() == 1 {
+                    let (from, to) = *input_output.iter().nth(0).unwrap();
+                    let weight = random_weight();
+                    output_genes.push(Gene { from, to, weight });
+                    break;
+                } else {
+                    let (from, to) = *input_inner_output.iter().nth(0).unwrap();
+                    let to_type = props.neural_net.neuron_type_map[&to];
+                    let weight = random_weight();
 
-            if !is_unique {
-                continue;
-            }
-
-            // From here on out we have a unique gene
-            match props.neural_net.neuron_type_map[&gene.from] {
-                NeuronType::InputNeuron => input_genes.push(gene),
-                NeuronType::InnerNeuron => inner_genes.push(gene),
-                NeuronType::OutputNeuron => output_genes.push(gene),
+                    if let NeuronType::InnerNeuron = to_type {
+                        inner_genes.push(Gene { from, to, weight });
+                        starting_id = Some(to);
+                        continue;
+                    } else if let NeuronType::OutputNeuron = to_type {
+                        output_genes.push(Gene { from, to, weight });
+                        starting_id = None;
+                        continue;
+                    }
+                }
             }
         }
 

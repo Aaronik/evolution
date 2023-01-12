@@ -110,3 +110,4 @@ pub enum NeuronType {
     InnerNeuron,
     OutputNeuron,
 }
+
