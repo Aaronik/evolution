@@ -2,6 +2,7 @@ use crate::*;
 use rand::{thread_rng, Rng};
 use std::collections::HashMap;
 
+#[derive(Debug)]
 pub struct World {
     pub size: usize,
     pub lifeforms: HashMap<usize, LifeForm>,

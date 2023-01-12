@@ -1,5 +1,6 @@
 use crate::*;
 
+#[derive(Debug)]
 pub struct LifeForm {
     pub id: usize,
     pub health: f32, // 0 - 1

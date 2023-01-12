@@ -18,6 +18,8 @@ fn main() {
     };
 
     let mut world = World::new(world_props);
+
+    println!("{:#?}", world.lifeforms.values().map(|lf| &lf.genome).collect::<Vec<&Genome>>());
     world.step();
 }
 
