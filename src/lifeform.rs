@@ -3,7 +3,7 @@ use crate::*;
 pub struct LifeForm {
     pub id: usize,
     pub health: f32, // 0 - 1
-    pub genome: Vec<Gene>,
+    pub genome: Genome,
     pub neural_net: NeuralNet,
     pub hunger: f32, // 0 - 1
     pub thirst: f32, // 0 - 1
@@ -11,6 +11,27 @@ pub struct LifeForm {
 }
 
 impl LifeForm {
+    pub fn new(id: usize, genome_size: usize, num_inner_neurons: usize) -> Self {
+        let neural_net = NeuralNet::new(num_inner_neurons);
+
+        let genome_props = GenomeProps {
+            size: genome_size,
+            neural_net: &neural_net,
+        };
+
+        let mut genome = Genome::new(genome_props);
+
+        Self {
+            id,
+            genome,
+            neural_net,
+            health: 1.0,
+            hunger: 0.0,
+            thirst: 0.0,
+            location: (0, id),
+        }
+    }
+
     /// returns a list of probablities associated with output neuron types
     pub fn calculate_output_probabilities(&self) -> Vec<(OutputNeuronType, f32)> {
         // * let running_sums = HashMap<neuron_id, sum>

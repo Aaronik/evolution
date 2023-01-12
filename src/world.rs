@@ -27,43 +27,13 @@ pub struct WorldProps {
 
 impl World {
     pub fn new(props: WorldProps) -> Self {
-        // just going to be used for its ids
-        let dummy_neural_net = NeuralNet::new(props.num_inner_neurons);
-
-        let input_neuron_ids: Vec<usize> =
-            dummy_neural_net.input_neurons.keys().map(|k| *k).collect();
-        let inner_neuron_ids: Vec<usize> =
-            dummy_neural_net.inner_neurons.keys().map(|k| *k).collect();
-        let output_neuron_ids: Vec<usize> =
-            dummy_neural_net.output_neurons.keys().map(|k| *k).collect();
-
         // LifeForm generation
         let mut lifeforms = HashMap::new();
 
         for lifeform_id in 0..props.num_initial_lifeforms {
-            let neural_net = NeuralNet::new(props.num_inner_neurons);
-
-            let mut genome = vec![];
-            for _ in 0..props.genome_size {
-                genome.push(Gene::new_random(
-                    &input_neuron_ids,
-                    &inner_neuron_ids,
-                    &output_neuron_ids,
-                ));
-            }
-
             lifeforms.insert(
                 lifeform_id,
-                LifeForm {
-                    id: lifeform_id,
-                    health: 1.0,
-                    genome,
-                    neural_net,
-                    hunger: 0.0,
-                    thirst: 0.0,
-                    location: (0, lifeform_id), // Each lifeform will start out next to each
-                                                // other for now
-                },
+                LifeForm::new(lifeform_id, props.genome_size, props.num_inner_neurons),
             );
         }
 
