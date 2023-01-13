@@ -1,7 +1,9 @@
+use std::collections::HashMap;
+
 use crate::*;
 use rand::{thread_rng, Rng};
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Gene {
     pub from: usize,
     pub to: usize,
@@ -29,11 +31,28 @@ pub struct Genome {
 impl Genome {
     pub fn new(props: GenomeProps) -> Self {
         let mut output_neuron_ids = props.neural_net_helper.output_neuron_ids.clone();
-        let mut inner_output_neuron_ids = props.neural_net_helper.inner_output_neuron_ids.clone();
+        let inner_output_neuron_ids = props.neural_net_helper.inner_output_neuron_ids.clone();
         let input_output_clone = props.neural_net_helper.input_output.clone();
         let mut input_output_iter = input_output_clone.iter();
         let input_inner_output_clone = props.neural_net_helper.input_inner_output.clone();
         let mut input_inner_output_iter = input_inner_output_clone.iter();
+
+        // Ok, I'm a bit delerious but this thing here will help us not repeat AND not
+        // run out of inner or ouput neuron ids to sample from. Hopefully the name is somewhat
+        // descriptive!
+        let mut inner_neuron_id_potential_to_pool: HashMap<usize, Vec<usize>> = HashMap::new();
+        for inner_id in &props.neural_net_helper.inner_neuron_ids {
+            for inner_output_id in &inner_output_neuron_ids {
+                if inner_neuron_id_potential_to_pool.contains_key(&inner_id) {
+                    inner_neuron_id_potential_to_pool
+                        .get_mut(&inner_id)
+                        .unwrap()
+                        .push(*inner_output_id);
+                } else {
+                    inner_neuron_id_potential_to_pool.insert(*inner_id, vec![*inner_output_id]);
+                }
+            }
+        }
 
         let NeuralNetHelper {
             neuron_type_map, ..
@@ -45,7 +64,12 @@ impl Genome {
 
         let mut starting_id: Option<usize> = None;
 
-        fn num_genes_left(size: &usize, input_genes: &Vec<Gene>, inner_genes: &Vec<Gene>, output_genes: &Vec<Gene>) -> usize {
+        fn num_genes_left(
+            size: &usize,
+            input_genes: &Vec<Gene>,
+            inner_genes: &Vec<Gene>,
+            output_genes: &Vec<Gene>,
+        ) -> usize {
             size - (input_genes.len() + inner_genes.len() + output_genes.len())
         }
 
@@ -56,9 +80,13 @@ impl Genome {
         };
 
         // Get one id from inner neurons UNION output neurons
-        let mut random_inner_output_neuron_id = || {
-            let idx = thread_rng().gen_range(0..inner_output_neuron_ids.len());
-            inner_output_neuron_ids.remove(idx)
+        let mut random_inner_output_neuron_id = |from: &usize| {
+            let potentials_pool_length = inner_neuron_id_potential_to_pool[from].len(); // TODO name
+            let idx = thread_rng().gen_range(0..potentials_pool_length);
+            inner_neuron_id_potential_to_pool
+                .get_mut(from)
+                .unwrap()
+                .remove(idx)
         };
 
         let random_weight = || thread_rng().gen_range(-4.0..=4.0);
@@ -76,7 +104,7 @@ impl Genome {
                     output_genes.push(Gene { from, to, weight });
                     break;
                 } else {
-                    let to = random_inner_output_neuron_id();
+                    let to = random_inner_output_neuron_id(&from);
                     let to_type = &neuron_type_map[&to];
                     let weight = random_weight();
 

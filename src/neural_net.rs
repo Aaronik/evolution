@@ -6,12 +6,13 @@ use strum_macros::EnumIter;
 /// Builds AND houses data structures that help for speedy neural net related calculations
 /// Meant to be a singleton that itself builds neural nets and houses these helpers.
 /// Must be instantiated to generate data structures.
+#[derive(Debug)]
 pub struct NeuralNetHelper {
     pub input_neurons: HashMap<usize, (InputNeuronType, InputNeuron)>,
     pub inner_neurons: HashMap<usize, InnerNeuron>,
     pub output_neurons: HashMap<usize, (OutputNeuronType, OutputNeuron)>,
 
-    /// A mapping of neuron id to its type. Handy in a number of situations.
+    /// A mapping of neuron id to its type (Input, Inner, or Output). Handy in a number of situations.
     pub neuron_type_map: HashMap<usize, NeuronType>,
 
     /// A list of ids to facilitate ease of genome creation

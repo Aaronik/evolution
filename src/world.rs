@@ -78,6 +78,8 @@ impl World {
             ));
         }
 
+        self.update_inputs();
+
         let mut has_died = vec![];
 
         // do effects of environment on lifeforms
@@ -101,13 +103,14 @@ impl World {
             if lifeform.health <= 0.0 {
                 has_died.push(lifeform.id)
             }
+
+            let what = lifeform.calculate_output_probabilities();
+            // println!("what: {:#?}", what);
         }
 
         for id in has_died {
             self.lifeforms.remove(&id);
         }
-
-        self.update_inputs();
     }
 
     /// Go through each lifeform and update the inputs for their neural_nets
