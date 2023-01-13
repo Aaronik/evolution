@@ -22,9 +22,9 @@ pub struct WorldProps {
 pub struct World {
     props: WorldProps,
     pub lifeforms: HashMap<usize, LifeForm>,
-    pub food: Vec<(usize, usize)>,
-    pub water: Vec<(usize, usize)>,
-    pub danger: Vec<(usize, usize)>,
+    pub food: HashSet<(usize, usize)>,
+    pub water: HashSet<(usize, usize)>,
+    pub danger: HashSet<(usize, usize)>,
     oscillator: f32,
     tics: usize,
     neural_net_helper: NeuralNetHelper,
@@ -45,9 +45,9 @@ impl World {
         }
 
         // Food generation
-        let food = vec![(0, 0)];
-        let water = vec![(props.size, props.size)];
-        let danger = vec![(props.size / 2, props.size)];
+        let food = HashSet::new();
+        let water = HashSet::new();
+        let danger = HashSet::from([(props.size / 2, props.size)]); // TODO make random, take variable amount
 
         Self {
             props,
@@ -67,14 +67,14 @@ impl World {
 
         // Update food and water
         if self.tics % self.props.food_density == 0 {
-            self.food.push((
+            self.food.insert((
                 thread_rng().gen_range(0..self.props.size),
                 thread_rng().gen_range(0..self.props.size),
             ));
         }
 
         if self.tics % self.props.water_density == 0 {
-            self.water.push((
+            self.water.insert((
                 thread_rng().gen_range(0..self.props.size),
                 thread_rng().gen_range(0..self.props.size),
             ));
@@ -85,49 +85,43 @@ impl World {
         let lf_ids: Vec<usize> = self.lifeforms.values().map(|lf| lf.id).collect();
 
         let mut has_died = vec![];
-        let mut eaten_food: Vec<usize> = vec![];
-        let mut drank_water: Vec<usize> = vec![];
 
         // do effects of environment on lifeforms
         for lf_id in lf_ids {
-            let mut lifeform = self.lifeforms.get_mut(&lf_id).unwrap();
-            lifeform.hunger += 0.00000001;
-            lifeform.thirst += 0.0000001;
+            let mut lf = self.lifeforms.get_mut(&lf_id).unwrap();
+            lf.hunger += 0.00000001;
+            lf.thirst += 0.0000001;
+            lf.lifespan += 1;
 
-            // If the lifeform is on top of resources it consumes them
-            for (idx, loc) in self.food.iter().enumerate() {
-                if loc == &lifeform.location {
-                    lifeform.hunger = 0.0;
-                    eaten_food.push(idx);
-                }
+            // If the lifeform is on a resource, remove it
+            if self.food.remove(&lf.location) {
+                lf.hunger = 0.0;
             }
 
-            for (idx, loc) in self.water.iter().enumerate() {
-                if loc == &lifeform.location {
-                    lifeform.thirst = 0.0;
-                    drank_water.push(idx);
-                }
+            if self.water.remove(&lf.location) {
+                lf.thirst = 0.0;
             }
 
-            lifeform.health -= lifeform.hunger;
+            lf.health -= lf.hunger;
 
             // TODO Eventually want this to have a more cool effect, like inihibiting
             // the accuracy of input neurons. Not MVP though, but totally doable by having
             // a function that wraps input neuron assignment and kind of randomly jacks the
             // number proportional to the thirst level of the creature. Will be interesting to
             // see how that evolves relative to having it be the same as hunger.
-            lifeform.health -= lifeform.thirst;
+            lf.health -= lf.thirst;
 
-            let dist_to_danger = dist_abs(&lifeform.location, &self.danger[0]);
-            lifeform.health -= 0.01 / dist_to_danger.powi(2);
+            // TODO make this closest_danger, this assumes there's at least one danger
+            let dist_to_danger = dist_abs(&lf.location, &self.danger.iter().last().unwrap());
+            lf.health -= 0.01 / dist_to_danger.powi(2);
 
-            if lifeform.health <= 0.0 {
-                has_died.push(lifeform.id)
+            if lf.health <= 0.0 {
+                has_died.push(lf.id)
             }
 
             // TODO Woohoooo with what down here we can make the output neurons actually
             // probablistically do actions!
-            let output_neuron_probabilities = lifeform.calculate_output_probabilities();
+            let output_neuron_probabilities = lf.calculate_output_probabilities();
             self.process_output_probabilities(lf_id, output_neuron_probabilities);
         }
 
@@ -136,21 +130,20 @@ impl World {
             self.lifeforms.remove(&id);
         }
 
-        // Remove the eaten food
-        for idx in eaten_food {
-            self.food.remove(idx);
-        }
+        self.ensure_lifeform_count();
+    }
 
-        // Remove the drank up water
-        for idx in drank_water {
-            self.water.remove(idx);
+    /// Keep a minimum number of lifeforms on the board. If there are none,
+    /// create a batch of random ones. If there are still living ones on the board, take
+    /// the ones who are the most fit and clone them.
+    fn ensure_lifeform_count(&mut self) {
+        if self.lifeforms.len() >= self.props.minimum_number_lifeforms {
+            return;
         }
-
-        // Keep a minimum number of lifeforms on the board
-        // TODO This should rather be an asexual reproduction with slight chance of mutation
-        if self.lifeforms.len() < self.props.minimum_number_lifeforms {
-            // Every time we've dipped below, let's make two new guys
-            for _ in 0..=2 {
+        // If there are none, we can't get some from the most fit, so we'll make
+        // a whole batch of randoms.
+        if self.lifeforms.len() == 0 {
+            for _ in 0..self.props.minimum_number_lifeforms {
                 let lf = LifeForm::new(
                     self.available_lifeform_id(),
                     self.props.genome_size,
@@ -160,28 +153,53 @@ impl World {
             }
         }
 
-        // // TODO This ain't workin EITHER. Basically, I think if we're low on lifeforms,
-        // // we just create new random ones straight up.
-        // // If there are few enough lifeforms remaining, we want to do some asexual
-        // // reproduction with a higher than average mutation rate.
-        // if self.lifeforms.len() < self.props.minimum_number_lifeforms {
-        //     let mut lifeforms_to_add = vec![];
+        // Get the most fit individual for later cloning
+        let most_fit_lf = self.most_fit_lifeform();
+        let mut to_add: Vec<LifeForm> = vec![];
 
-        //     for lf in self.lifeforms.values() {
-        //         // asexually recreate another lifeform pretty much similar to this one
-        //         let available_id = self.available_lifeform_id();
-        //         // TODO For now I'm just going to create a totally new lifeform. Just because
-        //         // the mutation was too complicated for my sleepy brain.
-        //         let new_lifeform = LifeForm::new(available_id, self.props.genome_size, &self.neural_net_helper);
-        //         lifeforms_to_add.push(new_lifeform);
-        //         // TODO intention is to, in here, mutate this create a clone
-        //         // of this lifeform with a slightly mutated genome
-        //     }
+        // Make a few clones
+        for offset in 0..3 {
+            let genome: Genome;
 
-        //     for lf in lifeforms_to_add {
-        //         self.lifeforms.insert(lf.id, lf);
-        //     }
-        // }
+            if Evolver::should_mutate(1.0) {
+                genome = Evolver::mutate(&most_fit_lf.genome, &self.neural_net_helper);
+            } else {
+                genome = most_fit_lf.genome.clone();
+            }
+
+            let lf = LifeForm {
+                id: self.available_lifeform_id(),
+                health: 1.0,
+                location: (most_fit_lf.location.0 + offset, most_fit_lf.location.1),
+                genome,
+                hunger: 0.0,
+                thirst: 0.0,
+                lifespan: 0,
+                neural_net: self.neural_net_helper.spawn(),
+            };
+
+            to_add.push(lf);
+        }
+
+        for lf in to_add {
+            self.lifeforms.insert(lf.id, lf);
+        }
+    }
+
+    fn most_fit_lifeform(&self) -> &LifeForm {
+        let mut most_fit_lf: Option<&LifeForm> = None;
+
+        for lf in self.lifeforms.values() {
+            if let Some(most_fit) = most_fit_lf {
+                if Evolver::fitness(lf) > Evolver::fitness(&most_fit) {
+                    most_fit_lf = Some(lf);
+                }
+            } else {
+                most_fit_lf = Some(lf);
+            }
+        }
+
+        most_fit_lf.unwrap()
     }
 
     fn process_output_probabilities(
@@ -215,7 +233,7 @@ impl World {
                 OutputNeuronType::MoveLeft if loc.0 > 0 => loc.0 -= 1,
                 OutputNeuronType::Attack => (),
                 OutputNeuronType::Mate => (),
-                _ => panic!("newp")
+                _ => panic!("newp"),
             }
         }
 
@@ -230,9 +248,18 @@ impl World {
         let size = self.props.size;
 
         for (lifeform_id, lifeform) in self.lifeforms.iter_mut() {
-            let closest_food = &closest_to(&lifeform.location, &self.food);
-            let closest_wat = &closest_to(&lifeform.location, &self.water);
-            let closest_dang = &closest_to(&lifeform.location, &self.danger);
+            let closest_food = &closest_to(
+                &lifeform.location,
+                &self.food.iter().map(|loc| *loc).collect(),
+            );
+            let closest_wat = &closest_to(
+                &lifeform.location,
+                &self.water.iter().map(|loc| *loc).collect(),
+            );
+            let closest_dang = &closest_to(
+                &lifeform.location,
+                &self.danger.iter().map(|loc| *loc).collect(),
+            );
             let loc = &lifeform.location;
 
             let (num_in_vicinity, closest_lf_health, closest_lf_loc, closest_lf_distance) =

@@ -26,7 +26,7 @@ fn main() {
 
     let mut world = World::new(world_props);
     let mut engine =
-        console_engine::ConsoleEngine::init((size * 3) as u32, (size + 2) as u32, 100).unwrap();
+        console_engine::ConsoleEngine::init((size * 3) as u32, (size + 2) as u32, 1000).unwrap();
 
     let mut paused = false;
 
@@ -125,17 +125,17 @@ fn step(size: usize, engine: &mut ConsoleEngine, world: &mut World) {
         .as_str(),
     );
 
-    let stats: Vec<(usize, f32, f32, f32)> = world
+    let stats: Vec<(usize, usize, f32, f32, f32)> = world
         .lifeforms
         .values()
-        .map(|lf| (lf.id, lf.health, lf.hunger, lf.thirst))
+        .map(|lf| (lf.id, lf.lifespan, lf.health, lf.hunger, lf.thirst))
         .collect();
 
     // let stats = format!("{:#?}", stats);
 
     // Stats
     engine.line((size + 1) as i32, 0, (size + 1) as i32, (engine.get_height() - 2) as i32, pixel::pxl('|'));
-    engine.print((size + 2) as i32, 0, "Stats: id, health, hunger, thirst");
+    engine.print((size + 2) as i32, 0, "Stats: id, lifespan, health, hunger, thirst");
     for (idx, stat) in stats.iter().enumerate() {
         engine.print((size + 2) as i32, (idx + 1) as i32, &format!("{:.10?}", stat));
     }

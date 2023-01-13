@@ -2,21 +2,25 @@ use rand::{thread_rng, Rng};
 
 use crate::*;
 
+#[derive(Debug)]
 pub struct Evolver {
-    neural_net_helper: NeuralNetHelper,
 }
 
 impl Evolver {
-    pub fn new(neural_net_helper: NeuralNetHelper) -> Self {
-        Self { neural_net_helper }
-    }
-
     pub fn mate(_lf1: LifeForm, _lf2: LifeForm) -> LifeForm {
         todo!()
     }
 
-    // Takes a genome, makes a clone of it with a slight mutation, returns that
-    pub fn mutate(&self, genome: &Genome) -> Genome {
+    pub fn fitness(lf: &LifeForm) -> usize {
+        lf.lifespan
+    }
+
+    pub fn should_mutate(mutation_rate: f32) -> bool {
+        thread_rng().gen_bool(mutation_rate as f64)
+    }
+
+    /// Takes a genome, makes a clone of it with a slight mutation, returns that
+    pub fn mutate(genome: &Genome, neural_net_helper: &NeuralNetHelper) -> Genome {
         let mut genome = genome.clone();
 
         // First we just get one gene at random from the bunch
@@ -37,12 +41,12 @@ impl Evolver {
         };
 
         let mut from_neuron_ids: Vec<usize> = vec![];
-        from_neuron_ids.append(&mut self.neural_net_helper.input_neuron_ids.clone());
-        from_neuron_ids.append(&mut self.neural_net_helper.inner_neuron_ids.clone());
+        from_neuron_ids.append(&mut neural_net_helper.input_neuron_ids.clone());
+        from_neuron_ids.append(&mut neural_net_helper.inner_neuron_ids.clone());
 
         let mut to_neuron_ids: Vec<usize> = vec![];
-        to_neuron_ids.append(&mut self.neural_net_helper.inner_neuron_ids.clone());
-        to_neuron_ids.append(&mut self.neural_net_helper.output_neuron_ids.clone());
+        to_neuron_ids.append(&mut neural_net_helper.inner_neuron_ids.clone());
+        to_neuron_ids.append(&mut neural_net_helper.output_neuron_ids.clone());
 
         // Which of the three fields are we going to modify?
         let from_to_weight = thread_rng().gen_range(0..3);
@@ -62,15 +66,18 @@ impl Evolver {
         }
 
         let type_of = |id: &usize| {
-            self.neural_net_helper.neuron_type_map.get(id).unwrap()
+            neural_net_helper.neuron_type_map.get(id).unwrap()
         };
+
+        // TODO for example, evolver here knows about this ordering below.
+        // This is something that genome knows about, not evolver.
 
         // Insert modified gene into the correct bucket
         if let NeuronType::InputNeuron = type_of(&gene.from) {
             genome.input_genes.push(gene);
         } else if let NeuronType::InnerNeuron = type_of(&gene.from) {
             if let NeuronType::InnerNeuron = type_of(&gene.to) {
-                genome.input_genes.push(gene);
+                genome.inner_genes.push(gene);
             }
         } else {
             genome.output_genes.push(gene);
@@ -78,30 +85,4 @@ impl Evolver {
 
         genome
     }
-
-    // TODO Just operate on genomes ok?
-    pub fn asexually_reproduce(&self, lf: &LifeForm, available_id: usize) -> LifeForm {
-        // TODO mutate a little
-        let genome = lf.genome.clone();
-        let neural_net = lf.neural_net.clone();
-
-        LifeForm {
-            id: available_id,
-            genome,
-            neural_net,
-            health: 1.0,
-            hunger: 0.0,
-            thirst: 0.0,
-            location: (lf.location.0, lf.location.1 + 1),
-        }
-    }
 }
-
-// fn mutate(genes: Vec<Gene>, possible_neuron_ids: Vec<usize>) -> Vec<Gene> {
-//     let idx = thread_rng().gen_range(0..genes.len());
-//     let gene = genes.get(idx).unwrap();
-
-// if thread_rng().gen_bool() {
-//     // gene.
-// }
-// }

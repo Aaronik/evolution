@@ -11,6 +11,7 @@ pub struct LifeForm {
     pub hunger: f32, // 0 - 1
     pub thirst: f32, // 0 - 1
     pub location: (usize, usize),
+    pub lifespan: usize, // How many tics this one has lived for
 }
 
 impl LifeForm {
@@ -31,6 +32,7 @@ impl LifeForm {
             health: 1.0,
             hunger: 0.0,
             thirst: 0.0,
+            lifespan: 0,
             location: (id + 10, id + 10),
         }
     }
