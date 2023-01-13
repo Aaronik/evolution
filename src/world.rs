@@ -84,8 +84,6 @@ impl World {
 
         // do effects of environment on lifeforms
         for (_, lifeform) in self.lifeforms.iter_mut() {
-            let dist_to_danger = dist_abs(&lifeform.location, &self.danger[0]);
-
             lifeform.hunger += 0.00001;
             lifeform.thirst += 0.00001;
 
@@ -98,6 +96,7 @@ impl World {
             // see how that evolves relative to having it be the same as hunger.
             lifeform.health -= lifeform.thirst;
 
+            let dist_to_danger = dist_abs(&lifeform.location, &self.danger[0]);
             lifeform.health -= 1.0 / dist_to_danger.powi(2);
 
             if lifeform.health <= 0.0 {
