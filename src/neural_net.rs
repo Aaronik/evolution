@@ -154,47 +154,15 @@ impl NeuralNetHelper {
     }
 
     pub fn spawn(&self) -> NeuralNet {
-
-        // Clone HashMaps
-        let mut input_neurons = HashMap::new();
-        let mut inner_neurons = HashMap::new();
-        let mut output_neurons = HashMap::new();
-
-        for (_, val) in self.input_neurons.iter() {
-            let (typ, neur) = val;
-
-            let neuron = InputNeuron {
-                id: neur.id.clone(),
-                value: neur.value.clone(),
-            };
-
-            input_neurons.insert(neuron.id, (typ.clone(), neuron));
-        }
-
-        for (id, _) in self.inner_neurons.iter() {
-            let neuron = InnerNeuron { id: *id };
-            inner_neurons.insert(*id, neuron);
-        }
-
-        for (_, val) in self.output_neurons.iter() {
-            let (typ, neur) = val;
-
-            let neuron = OutputNeuron {
-                id: neur.id.clone(),
-            };
-
-            output_neurons.insert(neuron.id, (typ.clone(), neuron));
-        }
-
         NeuralNet {
-            input_neurons,
-            inner_neurons,
-            output_neurons,
+            input_neurons: self.input_neurons.clone(),
+            inner_neurons: self.inner_neurons.clone(),
+            output_neurons: self.output_neurons.clone(),
         }
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct NeuralNet {
     pub input_neurons: HashMap<usize, (InputNeuronType, InputNeuron)>,
     pub inner_neurons: HashMap<usize, InnerNeuron>,
@@ -203,32 +171,31 @@ pub struct NeuralNet {
 
 #[derive(Debug, EnumIter, Clone)]
 pub enum InputNeuronType {
-    DirectionToFood,
-    DistanceToFood,
-    DirectionToWater,
-    DistanceToWater,
-    DirectionToDanger,
-    DistanceToDanger,
-    DirectionToHealthiestLF,
-    DistanceToHealthiestLF,
-    HealthiestLFHealth,
-    DirectionToClosestLF,
-    DistanceToClosestLF,
-    ClosestLFHealth,
-    Health,
-    Hunger,
-    Thirst,
-    PopulationDensity,
-    NeighborhoodDensity,
-    Random,
-    Oscillator,
+    DirectionToFood = 100,
+    DistanceToFood = 101,
+    DirectionToWater = 102,
+    DistanceToWater = 103,
+    DirectionToDanger = 104,
+    DistanceToDanger = 105,
+    DirectionToHealthiestLF = 106,
+    DistanceToHealthiestLF = 107,
+    HealthiestLFHealth = 108,
+    DirectionToClosestLF = 109,
+    DistanceToClosestLF = 110,
+    ClosestLFHealth = 111,
+    Health = 112,
+    Hunger = 113,
+    Thirst = 114,
+    PopulationDensity = 115,
+    NeighborhoodDensity = 116,
+    Random = 117,
+    Oscillator = 118,
 }
 
 #[derive(Debug, Default, Clone)]
 pub struct InputNeuron {
-    // TODO One struct per type?
     pub id: usize,
-    pub value: f32, // 0.0 - 1.0
+    pub value: f32,
 }
 
 #[derive(Debug, EnumIter, Clone)]
@@ -243,12 +210,12 @@ pub enum OutputNeuronType {
     Drink,
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct OutputNeuron {
     pub id: usize,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct InnerNeuron {
     pub id: usize,
 }

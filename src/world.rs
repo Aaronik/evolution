@@ -1,29 +1,33 @@
 use crate::*;
 use rand::{thread_rng, Rng};
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 #[derive(Debug)]
-pub struct World {
-    pub size: usize,
-    pub lifeforms: HashMap<usize, LifeForm>,
-    pub food: Vec<(usize, usize)>,
-    pub food_density: usize, // After how many frames does a new food appear
-    pub water: Vec<(usize, usize)>,
-    pub water_density: usize, // After how many frames does a new water appear
-    pub danger: Vec<(usize, usize)>,
-    pub mutation_rate: f32,
-    oscillator: f32,
-    tics: usize,
-}
-
 pub struct WorldProps {
     pub size: usize,
     pub num_initial_lifeforms: usize,
     pub genome_size: usize,
-    pub food_density: usize,
-    pub water_density: usize,
     pub mutation_rate: f32,
     pub num_inner_neurons: usize,
+    pub minimum_number_lifeforms: usize,
+
+    /// After how many frames does a new food appear
+    pub food_density: usize,
+
+    /// After how many frames does a new water appear
+    pub water_density: usize,
+}
+
+#[derive(Debug)]
+pub struct World {
+    props: WorldProps,
+    pub lifeforms: HashMap<usize, LifeForm>,
+    pub food: Vec<(usize, usize)>,
+    pub water: Vec<(usize, usize)>,
+    pub danger: Vec<(usize, usize)>,
+    oscillator: f32,
+    tics: usize,
+    neural_net_helper: NeuralNetHelper,
 }
 
 impl World {
@@ -46,14 +50,12 @@ impl World {
         let danger = vec![(props.size, 0)];
 
         Self {
-            size: props.size,
-            food_density: props.food_density,
-            water_density: props.water_density,
-            mutation_rate: props.mutation_rate,
+            props,
             food,
             water,
             danger,
             lifeforms,
+            neural_net_helper,
             oscillator: 0.0,
             tics: 0,
         }
@@ -64,17 +66,17 @@ impl World {
         self.oscillator = (self.tics as f32 / 10.0).sin();
 
         // Update food and water
-        if self.tics % self.food_density == 0 {
+        if self.tics % self.props.food_density == 0 {
             self.food.push((
-                thread_rng().gen_range(0..self.size),
-                thread_rng().gen_range(0..self.size),
+                thread_rng().gen_range(0..self.props.size),
+                thread_rng().gen_range(0..self.props.size),
             ));
         }
 
-        if self.tics % self.water_density == 0 {
+        if self.tics % self.props.water_density == 0 {
             self.water.push((
-                thread_rng().gen_range(0..self.size),
-                thread_rng().gen_range(0..self.size),
+                thread_rng().gen_range(0..self.props.size),
+                thread_rng().gen_range(0..self.props.size),
             ));
         }
 
@@ -103,13 +105,46 @@ impl World {
                 has_died.push(lifeform.id)
             }
 
-            let what = lifeform.calculate_output_probabilities();
-            // println!("what: {:#?}", what);
+            // TODO Woohoooo with what down here we can make the output neurons actually
+            // probablistically do actions!
+            let _output_neuron_probabilities = lifeform.calculate_output_probabilities();
         }
 
         for id in has_died {
             self.lifeforms.remove(&id);
         }
+
+
+        if self.lifeforms.len() < self.props.minimum_number_lifeforms {
+            // Every time we've dipped below, let's make two new guys
+            for _ in 0..=2 {
+                let lf = LifeForm::new(self.available_lifeform_id(), self.props.genome_size, &self.neural_net_helper);
+                self.lifeforms.insert(lf.id, lf);
+            }
+        }
+
+        // // TODO This ain't workin EITHER. Basically, I think if we're low on lifeforms,
+        // // we just create new random ones straight up.
+        // // If there are few enough lifeforms remaining, we want to do some asexual
+        // // reproduction with a higher than average mutation rate.
+        // if self.lifeforms.len() < self.props.minimum_number_lifeforms {
+        //     let mut lifeforms_to_add = vec![];
+
+        //     for lf in self.lifeforms.values() {
+        //         // asexually recreate another lifeform pretty much similar to this one
+        //         let available_id = self.available_lifeform_id();
+        //         // TODO For now I'm just going to create a totally new lifeform. Just because
+        //         // the mutation was too complicated for my sleepy brain.
+        //         let new_lifeform = LifeForm::new(available_id, self.props.genome_size, &self.neural_net_helper);
+        //         lifeforms_to_add.push(new_lifeform);
+        //         // TODO intention is to, in here, mutate this create a clone
+        //         // of this lifeform with a slightly mutated genome
+        //     }
+
+        //     for lf in lifeforms_to_add {
+        //         self.lifeforms.insert(lf.id, lf);
+        //     }
+        // }
     }
 
     /// Go through each lifeform and update the inputs for their neural_nets
@@ -117,7 +152,7 @@ impl World {
         let (hlthst_lf_health, hlthst_lf_loc) = self.healthiest_lifeform_info();
         let lfs_id_loc_health = generate_lifeform_info_vec(&self.lifeforms);
         let num_lifeforms = self.lifeforms.len();
-        let size = self.size;
+        let size = self.props.size;
 
         for (lifeform_id, lifeform) in self.lifeforms.iter_mut() {
             let closest_food = &closest_to(&lifeform.location, &self.food);
@@ -166,6 +201,24 @@ impl World {
         }
 
         (healthiest_lifeform_health, healthiest_lifeform_location)
+    }
+
+    fn available_lifeform_id(&self) -> usize {
+        let mut extent_ids: HashSet<usize> = HashSet::new();
+        for lf in self.lifeforms.values() {
+            extent_ids.insert(lf.id);
+        }
+
+        let mut id: usize = 0;
+
+        for potential_id in 0..=self.lifeforms.len() {
+            if !extent_ids.contains(&potential_id) {
+                id = potential_id;
+                break;
+            }
+        }
+
+        id
     }
 }
 

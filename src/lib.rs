@@ -3,9 +3,11 @@ pub mod neural_net;
 pub mod lifeform;
 pub mod runner;
 pub mod genome;
+pub mod evolver;
 
 pub use world::*;
 pub use neural_net::*;
 pub use lifeform::*;
 pub use runner::*;
 pub use genome::*;
+pub use evolver::*;
