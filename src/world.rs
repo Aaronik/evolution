@@ -82,12 +82,32 @@ impl World {
 
         self.update_inputs();
 
+        let lf_ids: Vec<usize> = self.lifeforms.values().map(|lf| lf.id).collect();
+
         let mut has_died = vec![];
+        let mut eaten_food: Vec<usize> = vec![];
+        let mut drank_water: Vec<usize> = vec![];
 
         // do effects of environment on lifeforms
-        for (_, lifeform) in self.lifeforms.iter_mut() {
+        for lf_id in lf_ids {
+            let mut lifeform = self.lifeforms.get_mut(&lf_id).unwrap();
             lifeform.hunger += 0.00001;
-            lifeform.thirst += 0.00001;
+            lifeform.thirst += 0.0001;
+
+            // If the lifeform is on top of resources it consumes them
+            for (idx, loc) in self.food.iter().enumerate() {
+                if loc == &lifeform.location {
+                    lifeform.hunger = 0.0;
+                    eaten_food.push(idx);
+                }
+            }
+
+            for (idx, loc) in self.water.iter().enumerate() {
+                if loc == &lifeform.location {
+                    lifeform.thirst = 0.0;
+                    drank_water.push(idx);
+                }
+            }
 
             lifeform.health -= lifeform.hunger;
 
@@ -107,18 +127,35 @@ impl World {
 
             // TODO Woohoooo with what down here we can make the output neurons actually
             // probablistically do actions!
-            let _output_neuron_probabilities = lifeform.calculate_output_probabilities();
+            let output_neuron_probabilities = lifeform.calculate_output_probabilities();
+            self.process_output_probabilities(lf_id, output_neuron_probabilities);
         }
 
+        // Remove the dead lifeforms
         for id in has_died {
             self.lifeforms.remove(&id);
         }
 
+        // Remove the eaten food
+        for idx in eaten_food {
+            self.food.remove(idx);
+        }
 
+        // Remove the drank up water
+        for idx in drank_water {
+            self.water.remove(idx);
+        }
+
+        // Keep a minimum number of lifeforms on the board
+        // TODO This should rather be an asexual reproduction with slight chance of mutation
         if self.lifeforms.len() < self.props.minimum_number_lifeforms {
             // Every time we've dipped below, let's make two new guys
             for _ in 0..=2 {
-                let lf = LifeForm::new(self.available_lifeform_id(), self.props.genome_size, &self.neural_net_helper);
+                let lf = LifeForm::new(
+                    self.available_lifeform_id(),
+                    self.props.genome_size,
+                    &self.neural_net_helper,
+                );
                 self.lifeforms.insert(lf.id, lf);
             }
         }
@@ -145,6 +182,17 @@ impl World {
         //         self.lifeforms.insert(lf.id, lf);
         //     }
         // }
+    }
+
+    fn process_output_probabilities(
+        &mut self,
+        lf_id: usize,
+        probabilities: Vec<(OutputNeuronType, f32)>,
+    ) {
+        for (neuron_type, value) in probabilities {
+            // match neuron_type {
+            // }
+        }
     }
 
     /// Go through each lifeform and update the inputs for their neural_nets

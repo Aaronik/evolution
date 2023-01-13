@@ -17,10 +17,11 @@ fn main() {
         num_initial_lifeforms: 10,
         genome_size: 45,
         mutation_rate: 0.001,
-        food_density: 30,
+        food_density: 300,
         water_density: 30,
         num_inner_neurons: 3,
         minimum_number_lifeforms: 4,
+        // TODO Add num dangers
     };
 
     let mut world = World::new(world_props);

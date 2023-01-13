@@ -206,8 +206,6 @@ pub enum OutputNeuronType {
     MoveLeft,
     Attack,
     Mate,
-    Eat,
-    Drink,
 }
 
 #[derive(Debug, Default, Clone)]
