@@ -136,7 +136,7 @@ fn step(size: usize, engine: &mut ConsoleEngine, world: &mut World) {
     engine.line((size + 1) as i32, 0, (size + 1) as i32, engine.get_height() as i32, pixel::pxl('|'));
     engine.print((size + 2) as i32, 0, "Stats: id, health, hunger, thirst");
     for (idx, stat) in stats.iter().enumerate() {
-        engine.print((size + 2) as i32, (idx + 1) as i32, &format!("{:?}", stat));
+        engine.print((size + 2) as i32, (idx + 1) as i32, &format!("{:.10?}", stat));
     }
     // engine.print((size + 2) as i32, 1, &stats);
 
