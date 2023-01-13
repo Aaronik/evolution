@@ -47,7 +47,7 @@ impl World {
         // Food generation
         let food = vec![(0, 0)];
         let water = vec![(props.size, props.size)];
-        let danger = vec![(props.size, 0)];
+        let danger = vec![(props.size / 2, props.size)];
 
         Self {
             props,
@@ -91,8 +91,8 @@ impl World {
         // do effects of environment on lifeforms
         for lf_id in lf_ids {
             let mut lifeform = self.lifeforms.get_mut(&lf_id).unwrap();
-            lifeform.hunger += 0.00001;
-            lifeform.thirst += 0.0001;
+            lifeform.hunger += 0.00000001;
+            lifeform.thirst += 0.0000001;
 
             // If the lifeform is on top of resources it consumes them
             for (idx, loc) in self.food.iter().enumerate() {
@@ -119,7 +119,7 @@ impl World {
             lifeform.health -= lifeform.thirst;
 
             let dist_to_danger = dist_abs(&lifeform.location, &self.danger[0]);
-            lifeform.health -= 1.0 / dist_to_danger.powi(2);
+            lifeform.health -= 0.01 / dist_to_danger.powi(2);
 
             if lifeform.health <= 0.0 {
                 has_died.push(lifeform.id)
@@ -189,10 +189,37 @@ impl World {
         lf_id: usize,
         probabilities: Vec<(OutputNeuronType, f32)>,
     ) {
+        let mut lf = self.lifeforms.get_mut(&lf_id).unwrap();
+
+        let mut loc = lf.location;
+        let size = self.props.size;
+
         for (neuron_type, value) in probabilities {
-            // match neuron_type {
-            // }
+            if value <= 0.0 {
+                return;
+            }
+
+            // This reads as continue on with the probability of value so long as value is above 0.
+            if !thread_rng().gen_bool(value as f64) {
+                return;
+            }
+
+            match neuron_type {
+                OutputNeuronType::MoveUp if loc.1 == 0 => (),
+                OutputNeuronType::MoveUp if loc.1 > 0 => loc.1 -= 1,
+                OutputNeuronType::MoveRight if loc.0 == size => (),
+                OutputNeuronType::MoveRight if loc.0 < size => loc.0 += 1,
+                OutputNeuronType::MoveDown if loc.1 == size => (),
+                OutputNeuronType::MoveDown if loc.1 < size => loc.1 += 1,
+                OutputNeuronType::MoveLeft if loc.0 == 0 => (),
+                OutputNeuronType::MoveLeft if loc.0 > 0 => loc.0 -= 1,
+                OutputNeuronType::Attack => (),
+                OutputNeuronType::Mate => (),
+                _ => panic!("newp")
+            }
         }
+
+        lf.location = loc;
     }
 
     /// Go through each lifeform and update the inputs for their neural_nets

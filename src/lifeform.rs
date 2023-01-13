@@ -31,7 +31,7 @@ impl LifeForm {
             health: 1.0,
             hunger: 0.0,
             thirst: 0.0,
-            location: (id, 0),
+            location: (id + 10, id + 10),
         }
     }
 

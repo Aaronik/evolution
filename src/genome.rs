@@ -27,13 +27,6 @@ pub struct Genome {
     /// All the genes that go from inner neurons to output neurons
     /// (this is here to facilitate the neural net calculation at each tic)
     pub output_genes: Vec<Gene>,
-
-    /// These are here to aid with mutation
-    pub available_input_ids: Vec<usize>,
-    /// These are here to aid with mutation
-    pub available_inner_ids: Vec<usize>,
-    /// These are here to aid with mutation
-    pub available_output_ids: Vec<usize>,
 }
 
 impl Genome {
@@ -48,6 +41,7 @@ impl Genome {
         // Ok, I'm a bit delerious but this thing here will help us not repeat AND not
         // run out of inner or ouput neuron ids to sample from. Hopefully the name is somewhat
         // descriptive!
+        // map from inner neuron id -> Vec<inner neuron ids UNION output neuron ids>
         let mut inner_neuron_id_potential_to_pool: HashMap<usize, Vec<usize>> = HashMap::new();
         for inner_id in &props.neural_net_helper.inner_neuron_ids {
             for inner_output_id in &inner_output_neuron_ids {
@@ -89,12 +83,23 @@ impl Genome {
 
         // Get one id from inner neurons UNION output neurons
         let mut random_inner_output_neuron_id = |from: &usize| {
-            let potentials_pool_length = inner_neuron_id_potential_to_pool[from].len(); // TODO name
+            let potentials_pool_length = inner_neuron_id_potential_to_pool[from].len();
+
+            // It can happen that there'll be no more inner neuron ids in this pool,
+            // if the inner neuron in question is already connected to
+            // itself and every single output neuron.
+            // If this is the case, we need to simply pass on this connection.
+            if potentials_pool_length == 0 {
+                return None;
+            }
+
             let idx = thread_rng().gen_range(0..potentials_pool_length);
-            inner_neuron_id_potential_to_pool
+            let to = inner_neuron_id_potential_to_pool
                 .get_mut(from)
                 .unwrap()
-                .remove(idx)
+                .remove(idx);
+
+            Some(to)
         };
 
         // This is a cleverly (hopefully) crafted loop that allows us to construct a genome that:
@@ -105,7 +110,9 @@ impl Genome {
         // evolve away. B/c when we mutate, it's hard to be really random if we can't assign to any
         // old id. When we mate, we're just going to pick at random genomes. So some may overlap
         // and some may be dead ends. Or, maybe it's good to start them from a good position and
-        // then let them evolve in whatever way they want.
+        // then let them evolve in whatever way they want. In fact you know what, even if we repeat
+        // a gene, who cares? That'll have the effect of modifying the weight of the connection and
+        // reducing the complexity of the brain.
         loop {
             if let Some(from) = starting_id {
                 if num_genes_left(&props.size, &input_genes, &inner_genes, &output_genes) == 1 {
@@ -114,7 +121,20 @@ impl Genome {
                     output_genes.push(Gene { from, to, weight });
                     break;
                 } else {
+                    // TODO If we get to our final inner neuron, this will try to pool
+                    // from an empty list and throw
                     let to = random_inner_output_neuron_id(&from);
+
+                    // If this happens, we're already maxed out on connections for this inner
+                    // neuron, so we abandon it and move on. This will result in one less gene for
+                    // this lifeform.
+                    if let None = to {
+                        starting_id = None;
+                        continue;
+                    }
+
+                    let to = to.unwrap();
+
                     let to_type = &neuron_type_map[&to];
                     let weight = Genome::random_weight();
 
@@ -153,9 +173,6 @@ impl Genome {
         }
 
         Self {
-            available_input_ids: props.neural_net_helper.input_neuron_ids.clone(),
-            available_inner_ids: props.neural_net_helper.inner_neuron_ids.clone(),
-            available_output_ids: props.neural_net_helper.output_neuron_ids.clone(),
             input_genes,
             inner_genes,
             output_genes,

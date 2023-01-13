@@ -10,23 +10,23 @@ use evolution::*;
 // * Add physics for when lifeforms get down to so many, they auto reproduce
 
 fn main() {
-    let size = 55;
+    let size = 50;
 
     let world_props = WorldProps {
         size,
-        num_initial_lifeforms: 10,
-        genome_size: 45,
+        num_initial_lifeforms: 20,
+        genome_size: 50,
         mutation_rate: 0.001,
         food_density: 300,
         water_density: 30,
-        num_inner_neurons: 3,
-        minimum_number_lifeforms: 4,
+        num_inner_neurons: 5,
+        minimum_number_lifeforms: 15,
         // TODO Add num dangers
     };
 
     let mut world = World::new(world_props);
     let mut engine =
-        console_engine::ConsoleEngine::init((size * 3) as u32, (size + 1) as u32, 100).unwrap();
+        console_engine::ConsoleEngine::init((size * 3) as u32, (size + 2) as u32, 100).unwrap();
 
     let mut paused = false;
 
@@ -134,7 +134,7 @@ fn step(size: usize, engine: &mut ConsoleEngine, world: &mut World) {
     // let stats = format!("{:#?}", stats);
 
     // Stats
-    engine.line((size + 1) as i32, 0, (size + 1) as i32, engine.get_height() as i32, pixel::pxl('|'));
+    engine.line((size + 1) as i32, 0, (size + 1) as i32, (engine.get_height() - 2) as i32, pixel::pxl('|'));
     engine.print((size + 2) as i32, 0, "Stats: id, health, hunger, thirst");
     for (idx, stat) in stats.iter().enumerate() {
         engine.print((size + 2) as i32, (idx + 1) as i32, &format!("{:.10?}", stat));
