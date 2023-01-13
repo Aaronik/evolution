@@ -28,6 +28,9 @@ pub struct World {
     oscillator: f32,
     tics: usize,
     neural_net_helper: NeuralNetHelper,
+
+    /// locations where there are already lifeforms
+    occupied_locations: HashSet<(usize, usize)>,
 }
 
 impl World {
@@ -49,6 +52,8 @@ impl World {
         let water = HashSet::new();
         let danger = HashSet::from([(props.size / 2, props.size)]); // TODO make random, take variable amount
 
+        let occupied_locations = HashSet::new();
+
         Self {
             props,
             food,
@@ -56,6 +61,7 @@ impl World {
             danger,
             lifeforms,
             neural_net_helper,
+            occupied_locations,
             oscillator: 0.0,
             tics: 0,
         }
@@ -81,6 +87,7 @@ impl World {
         }
 
         self.update_inputs();
+        self.occupied_locations = self.occupied_locations();
 
         let lf_ids: Vec<usize> = self.lifeforms.values().map(|lf| lf.id).collect();
 
@@ -151,6 +158,8 @@ impl World {
                 );
                 self.lifeforms.insert(lf.id, lf);
             }
+
+            return;
         }
 
         // Get the most fit individual for later cloning
@@ -222,22 +231,27 @@ impl World {
                 return;
             }
 
+            // TODO Somehow... somehow some are going right off the board. I've seen em go to the
+            // right.
             match neuron_type {
                 OutputNeuronType::MoveUp if loc.1 == 0 => (),
-                OutputNeuronType::MoveUp if loc.1 > 0 => loc.1 -= 1,
+                OutputNeuronType::MoveUp => loc.1 -= 1,
                 OutputNeuronType::MoveRight if loc.0 == size => (),
-                OutputNeuronType::MoveRight if loc.0 < size => loc.0 += 1,
+                OutputNeuronType::MoveRight => loc.0 += 1,
                 OutputNeuronType::MoveDown if loc.1 == size => (),
-                OutputNeuronType::MoveDown if loc.1 < size => loc.1 += 1,
+                OutputNeuronType::MoveDown => loc.1 += 1,
                 OutputNeuronType::MoveLeft if loc.0 == 0 => (),
-                OutputNeuronType::MoveLeft if loc.0 > 0 => loc.0 -= 1,
+                OutputNeuronType::MoveLeft => loc.0 -= 1,
                 OutputNeuronType::Attack => (),
                 OutputNeuronType::Mate => (),
-                _ => panic!("newp"),
             }
         }
 
-        lf.location = loc;
+        // We can only move there if it's unoccupied!
+        if !self.occupied_locations.contains(&loc) {
+            lf.location = loc;
+        }
+
     }
 
     /// Go through each lifeform and update the inputs for their neural_nets
@@ -322,6 +336,11 @@ impl World {
 
         id
     }
+
+    fn occupied_locations(&self) -> HashSet<(usize, usize)> {
+        self.lifeforms.values().map(|lf| lf.location).collect()
+    }
+
 }
 
 /// Generates a vec that has a very specific set of information relative to a lifeform, to be used

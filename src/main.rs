@@ -15,11 +15,11 @@ fn main() {
     let world_props = WorldProps {
         size,
         num_initial_lifeforms: 20,
-        genome_size: 50,
+        genome_size: 20,
         mutation_rate: 0.001,
         food_density: 300,
         water_density: 30,
-        num_inner_neurons: 5,
+        num_inner_neurons: 1,
         minimum_number_lifeforms: 15,
         // TODO Add num dangers
     };
@@ -125,10 +125,10 @@ fn step(size: usize, engine: &mut ConsoleEngine, world: &mut World) {
         .as_str(),
     );
 
-    let stats: Vec<(usize, usize, f32, f32, f32)> = world
+    let stats: Vec<(usize, usize, f32, f32, f32, (usize, usize))> = world
         .lifeforms
         .values()
-        .map(|lf| (lf.id, lf.lifespan, lf.health, lf.hunger, lf.thirst))
+        .map(|lf| (lf.id, lf.lifespan, lf.health, lf.hunger, lf.thirst, lf.location))
         .collect();
 
     // let stats = format!("{:#?}", stats);
