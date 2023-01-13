@@ -25,7 +25,7 @@ fn main() {
 
     let mut world = World::new(world_props);
     let mut engine =
-        console_engine::ConsoleEngine::init((size * 2) as u32, (size + 1) as u32, 100).unwrap();
+        console_engine::ConsoleEngine::init((size * 3) as u32, (size + 1) as u32, 100).unwrap();
 
     let mut paused = false;
 
@@ -39,7 +39,7 @@ fn main() {
             // A frame has passed
             Event::Frame => {
                 if !paused {
-                    step(&mut engine, &mut world);
+                    step(size, &mut engine, &mut world);
                 }
             }
 
@@ -53,25 +53,17 @@ fn main() {
                     paused = !paused;
                 }
 
-                if keyevent.code == KeyCode::Char('s') {
-                    paused = true;
-                    let stats: Vec<(usize, f32)> = world
-                        .lifeforms
-                        .values()
-                        .map(|lf| (lf.id, lf.health))
-                        .collect();
-                    let stats = format!("world.lifeforms: {:#?}", stats);
-                    engine.clear_screen();
-                    engine.print(0, 0, &stats);
-                    engine.draw();
-                }
-
                 if keyevent.code == KeyCode::Char('f') {
                     todo!();
                 }
 
                 if keyevent.code == KeyCode::Char('e') {
                     todo!();
+                    // TODO here could pause this loop, call a fn that has another
+                    // loop that just steps. In that fn though need to figure out
+                    // how to capture key events.
+                    // Alternatively, could have e mean do like 10,000 frames or something
+                    // without UI. So like a quick jump into the future.
                 }
             }
 
@@ -84,7 +76,7 @@ fn main() {
     }
 }
 
-fn step(engine: &mut ConsoleEngine, world: &mut World) {
+fn step(size: usize, engine: &mut ConsoleEngine, world: &mut World) {
     engine.clear_screen(); // reset the screen
 
     world.step();
@@ -121,15 +113,32 @@ fn step(engine: &mut ConsoleEngine, world: &mut World) {
         );
     }
 
+    // Controls
     engine.print(
         0,
         (engine.get_height() - 1) as i32,
         format!(
-            "controls: q = quit | p = pause | s = stats | f = change frame rate | e = evolve without UI | frame {}",
+            "controls: q = quit | p = pause | f = change frame rate | e = evolve without UI | frame {}",
             engine.frame_count
         )
         .as_str(),
     );
+
+    let stats: Vec<(usize, f32, f32, f32)> = world
+        .lifeforms
+        .values()
+        .map(|lf| (lf.id, lf.health, lf.hunger, lf.thirst))
+        .collect();
+
+    // let stats = format!("{:#?}", stats);
+
+    // Stats
+    engine.line((size + 1) as i32, 0, (size + 1) as i32, engine.get_height() as i32, pixel::pxl('|'));
+    engine.print((size + 2) as i32, 0, "Stats: id, health, hunger, thirst");
+    for (idx, stat) in stats.iter().enumerate() {
+        engine.print((size + 2) as i32, (idx + 1) as i32, &format!("{:?}", stat));
+    }
+    // engine.print((size + 2) as i32, 1, &stats);
 
     engine.draw(); // draw the screen
 }
