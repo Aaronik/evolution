@@ -1,3 +1,4 @@
+use console_engine::crossterm::event::MouseEventKind;
 use console_engine::events::Event;
 use console_engine::pixel;
 use console_engine::Color;
@@ -48,8 +49,6 @@ fn main() {
 
             // A Key has been pressed
             Event::Key(keyevent) => {
-                println!("keyevent: {:?}", keyevent);
-
                 if keyevent.code == KeyCode::Char('q') {
                     break;
                 }
@@ -73,7 +72,14 @@ fn main() {
             }
 
             // Mouse has been moved or clicked
-            Event::Mouse(_mouseevent) => { /* ... */ }
+            Event::Mouse(mouseevent) => {
+                if let MouseEventKind::Down(_) = mouseevent.kind {
+                    let loc = (mouseevent.column, mouseevent.row);
+                    paused = true;
+                    engine.print((size + 2) as i32, (size / 2) as i32, &format!("testing {:?}", mouseevent));
+                    engine.draw();
+                }
+            }
 
             // Window has been resized
             Event::Resize(_w, _h) => { /* ... */ }

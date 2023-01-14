@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use crate::*;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct LifeForm {
     pub id: usize,
     pub health: f32, // 0 - 1

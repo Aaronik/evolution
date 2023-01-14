@@ -28,9 +28,6 @@ pub struct World {
     oscillator: f32,
     tics: usize,
     neural_net_helper: NeuralNetHelper,
-
-    /// locations where there are already lifeforms
-    occupied_locations: HashSet<(usize, usize)>,
 }
 
 impl World {
@@ -52,8 +49,6 @@ impl World {
         let water = HashSet::new();
         let danger = HashSet::from([(props.size / 2, props.size)]); // TODO make random, take variable amount
 
-        let occupied_locations = HashSet::new();
-
         Self {
             props,
             food,
@@ -61,7 +56,6 @@ impl World {
             danger,
             lifeforms,
             neural_net_helper,
-            occupied_locations,
             oscillator: 0.0,
             tics: 0,
         }
@@ -87,15 +81,17 @@ impl World {
         }
 
         self.update_inputs();
-        self.occupied_locations = self.occupied_locations();
 
-        let lf_ids: Vec<usize> = self.lifeforms.values().map(|lf| lf.id).collect();
-
-        let mut has_died = vec![];
+        // In order to prevent data races, we clone each lifeform and loop
+        // over that set, which allows us to call other methods that reference our lifeforms
+        // hashmap.
+        let mut lfs: Vec<LifeForm> = vec![];
+        for lf in self.lifeforms.values_mut() {
+            lfs.push(lf.clone());
+        }
 
         // do effects of environment on lifeforms
-        for lf_id in lf_ids {
-            let mut lf = self.lifeforms.get_mut(&lf_id).unwrap();
+        for mut lf in lfs {
             lf.hunger += 0.00000001;
             lf.thirst += 0.0000001;
             lf.lifespan += 1;
@@ -123,18 +119,16 @@ impl World {
             lf.health -= 0.01 / dist_to_danger.powi(2);
 
             if lf.health <= 0.0 {
-                has_died.push(lf.id)
+                self.lifeforms.remove(&lf.id);
+                continue;
             }
 
-            // TODO Woohoooo with what down here we can make the output neurons actually
-            // probablistically do actions!
+            // Enact the effects of output neurons
             let output_neuron_probabilities = lf.calculate_output_probabilities();
-            self.process_output_probabilities(lf_id, output_neuron_probabilities);
-        }
+            self.process_output_probabilities(&mut lf, output_neuron_probabilities);
 
-        // Remove the dead lifeforms
-        for id in has_died {
-            self.lifeforms.remove(&id);
+            // Overwrite the lifeform in our hashmap
+            self.lifeforms.insert(lf.id, lf);
         }
 
         self.ensure_lifeform_count();
@@ -212,12 +206,10 @@ impl World {
     }
 
     fn process_output_probabilities(
-        &mut self,
-        lf_id: usize,
+        &self,
+        lf: &mut LifeForm,
         probabilities: Vec<(OutputNeuronType, f32)>,
     ) {
-        let mut lf = self.lifeforms.get_mut(&lf_id).unwrap();
-
         let mut loc = lf.location;
         let size = self.props.size;
 
@@ -231,8 +223,6 @@ impl World {
                 return;
             }
 
-            // TODO Somehow... somehow some are going right off the board. I've seen em go to the
-            // right.
             match neuron_type {
                 OutputNeuronType::MoveUp if loc.1 == 0 => (),
                 OutputNeuronType::MoveUp => loc.1 -= 1,
@@ -248,7 +238,7 @@ impl World {
         // We can only move there if it's unoccupied!
         // TODO This is not working, or somehow lfs are still all
         // on top of each other.
-        if !self.occupied_locations.contains(&loc) {
+        if let None = self.lifeform_at_location(&loc) {
             lf.location = loc;
         }
 
@@ -337,8 +327,14 @@ impl World {
         id
     }
 
-    fn occupied_locations(&self) -> HashSet<(usize, usize)> {
-        self.lifeforms.values().map(|lf| lf.location).collect()
+    fn lifeform_at_location(&self, location: &(usize, usize)) -> Option<&LifeForm> {
+        for lf in self.lifeforms.values() {
+            if &lf.location == location {
+                return Some(lf);
+            }
+        }
+
+        None
     }
 
 }
