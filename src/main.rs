@@ -11,6 +11,7 @@ use evolution::*;
 
 fn main() {
     let size = 50;
+    let frame_rate = 100;
 
     let world_props = WorldProps {
         size,
@@ -26,7 +27,7 @@ fn main() {
 
     let mut world = World::new(world_props);
     let mut engine =
-        console_engine::ConsoleEngine::init((size * 3) as u32, (size + 2) as u32, 1000).unwrap();
+        console_engine::ConsoleEngine::init((size * 3) as u32, (size + 2) as u32, frame_rate).unwrap();
 
     let mut paused = false;
 
@@ -35,13 +36,15 @@ fn main() {
     // of engine.poll() way. However it'd also be really nice to add an escape hatch to run
     // the evolution and not show anything on the screen.
     loop {
+        if paused {
+            engine.wait_frame();
+        }
+
         // Poll next event
         match engine.poll() {
             // A frame has passed
             Event::Frame => {
-                if !paused {
-                    step(size, &mut engine, &mut world);
-                }
+                step(size, &mut engine, &mut world);
             }
 
             // A Key has been pressed
