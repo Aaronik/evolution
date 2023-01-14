@@ -45,44 +45,12 @@ impl LifeForm {
         // neuron id, running sum
         let mut running_sums: HashMap<usize, f32> = HashMap::new();
 
-        // Game plan:
-        // * For each gene from an input neuron (no matter its destination is inner or output):
-        //  * record up its sums in running_sums[to]
-        // * For each gene from an inner neuron to an inner neuron:
-        //  * shift the gene out of the vec
-        //  * If gene's FROM has no value:
-        //      * push it back onto the end of the vec
-        //  * else
-        //      * add its sum to running_sums[to]
-        //  (do this until the vec is empty)
-        // * For each remaining gene, genes from inner neurons to output neurons:
-        //  * Do the sums
-
-        // TODO
-        // So like, each neuron needs to have a sum, right?
-        //  * For input neurons, that's its value * the genome weight.
-        //  * For inner neurons, that's all its input neuron's values * their genome weights,
-        //  plus the tanh of its inner neurons' existing sums.
-        //
-        //  So, we need to:
-        //  * Get the tanh(sum(value * weight))
-
         // First calculate the running sums for all of the input neurons
         for gene in &self.genome.input_genes {
-
-            // TODO We can't just add to this, right?
-            // Like, what if the extent sum is to an output neuron
-            // and has already been tanh'd?
             let extent_sum = running_sums.get(&gene.to);
 
             // The value of the input neuron
-            let input_value = self
-                .neural_net
-                .input_neurons
-                .get(&gene.from)
-                .unwrap()
-                .1
-                .value;
+            let input_value = self.neural_net.input_neurons[&gene.from].1.value;
 
             let new_sum = match extent_sum {
                 Some(sum) => sum + (gene.weight * input_value),
@@ -90,17 +58,20 @@ impl LifeForm {
             };
 
             running_sums.insert(gene.to, new_sum);
-
         }
 
         // Clone the inner genes
-        let mut inner_genes: Vec<Gene> = vec![];
-        for gene in &self.genome.inner_genes {
-            inner_genes.push(gene.clone());
-        }
+        let mut inner_genes = self.genome.inner_genes.clone();
 
-        // Perform inner gene scheme
-        while inner_genes.len() > 0 {
+        // Perform inner gene scheme: For every gene that goes inner neuron to inner neuron,
+        // as are called inner genes in here, use up the gene if its originator (from value)
+        // already has a sum, tanh that and add it to the to value's sum. If it doesn't yet
+        // have a sum, file it for later inspection, understanding that it may get a sum as
+        // we move through the others. Limit the number of times looping through it all to
+        // loop through every gene the same number of times as we have inner neurons. This should
+        // allow for completion of even the longest chains that have a completing path.
+        let mut count = 0;
+        while inner_genes.len() > 0 && count < self.neural_net.inner_neurons.len() * inner_genes.len() {
             let gene = inner_genes.remove(0); // Same as .shift()
 
             match running_sums.get(&gene.from) {
@@ -111,6 +82,8 @@ impl LifeForm {
                     inner_genes.push(gene);
                 }
             }
+
+            count += 1;
         }
 
         for gene in &self.genome.output_genes {
@@ -120,10 +93,18 @@ impl LifeForm {
             // Guaranteed to have a sum because we've already visited every input
             // for output genes. (the only genes we haven't visited are output genes,
             // and they don't ever lead to each other.)
-            let to_be_added = running_sums[&gene.from];
+            let to_be_added_opt = running_sums.get(&gene.from);
+
+            // There may well be a connection from an inner neuron that has no inputs!
+            if let None = to_be_added_opt {
+                continue;
+            }
+
+            let to_be_added = *to_be_added_opt.unwrap();
+
             let extent_sum = running_sums.get(&gene.to);
 
-            let new_sum = match extent_sum {
+            let new_sum: f32 = match extent_sum {
                 Some(sum) => sum + to_be_added,
                 None => to_be_added,
             };
@@ -137,9 +118,11 @@ impl LifeForm {
             // In this loop we have the value of every output neuron that has a value
 
             let (neuron_type, _) = &self.neural_net.output_neurons[&gene.to];
-            let value = running_sums[&gene.to].tanh();
 
-            final_output_values.push((neuron_type.clone(), value));
+            match running_sums.get(&gene.to) {
+                Some(sum) => final_output_values.push((neuron_type.clone(), sum.tanh())),
+                None => (),
+            }
         }
 
         final_output_values

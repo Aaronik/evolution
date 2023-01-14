@@ -237,7 +237,7 @@ impl World {
 
         // We can only move there if it's unoccupied!
         // TODO This is not working, or somehow lfs are still all
-        // on top of each other.
+        // on top of each other. Maybe actually it's in another place, like birth.
         if let None = self.lifeform_at_location(&loc) {
             lf.location = loc;
         }

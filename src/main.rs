@@ -21,12 +21,15 @@ fn main() {
         mutation_rate: 0.001,
         food_density: 300,
         water_density: 30,
-        num_inner_neurons: 1,
+        num_inner_neurons: 3,
         minimum_number_lifeforms: 15,
         // TODO Add num dangers
     };
 
     let mut world = World::new(world_props);
+
+    // println!("lifeforms: {:#?}", world.lifeforms.values().map(|lf| &lf.genome).collect::<Vec<&Genome>>());
+
     let mut engine =
         console_engine::ConsoleEngine::init((size * 3) as u32, (size + 2) as u32, frame_rate)
             .unwrap();
