@@ -236,10 +236,8 @@ impl World {
             match neuron_type {
                 OutputNeuronType::MoveUp if loc.1 == 0 => (),
                 OutputNeuronType::MoveUp => loc.1 -= 1,
-                OutputNeuronType::MoveRight if loc.0 == size => (),
-                OutputNeuronType::MoveRight => loc.0 += 1,
-                OutputNeuronType::MoveDown if loc.1 == size => (),
-                OutputNeuronType::MoveDown => loc.1 += 1,
+                OutputNeuronType::MoveRight => loc.0 = usize::min(loc.0 + 1, size),
+                OutputNeuronType::MoveDown => loc.1 = usize::min(loc.1 + 1, size),
                 OutputNeuronType::MoveLeft if loc.0 == 0 => (),
                 OutputNeuronType::MoveLeft => loc.0 -= 1,
                 OutputNeuronType::Attack => (),
@@ -248,6 +246,8 @@ impl World {
         }
 
         // We can only move there if it's unoccupied!
+        // TODO This is not working, or somehow lfs are still all
+        // on top of each other.
         if !self.occupied_locations.contains(&loc) {
             lf.location = loc;
         }
