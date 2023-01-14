@@ -78,7 +78,12 @@ fn main() {
                     let loc = (mouseevent.column as usize, mouseevent.row as usize);
                     let lf = world.lifeform_at_location(&loc);
                     if let Some(lf) = lf {
-                        engine.print((size + 2) as i32, (size / 2) as i32, &format!("{:#?}", lf));
+                        engine.print((size + 2) as i32, ((size / 2) - 2) as i32, &format!("LifeForm: {}", lf.id));
+                        engine.print((size + 2) as i32, ((size / 2) - 1) as i32, &format!("Input genes:"));
+                        for (idx, gene) in lf.genome.input_genes.iter().enumerate() {
+                            engine.print((size + 2) as i32, ((size / 2) + idx) as i32, &format!("{:?}", gene));
+                        }
+                        // engine.print((size + 2) as i32, (size / 2) as i32, &format!("{:#?}", lf));
                         engine.draw();
                     }
                 }
