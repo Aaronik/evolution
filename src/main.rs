@@ -74,10 +74,13 @@ fn main() {
             // Mouse has been moved or clicked
             Event::Mouse(mouseevent) => {
                 if let MouseEventKind::Down(_) = mouseevent.kind {
-                    let loc = (mouseevent.column, mouseevent.row);
                     paused = true;
-                    engine.print((size + 2) as i32, (size / 2) as i32, &format!("testing {:?}", mouseevent));
-                    engine.draw();
+                    let loc = (mouseevent.column as usize, mouseevent.row as usize);
+                    let lf = world.lifeform_at_location(&loc);
+                    if let Some(lf) = lf {
+                        engine.print((size + 2) as i32, (size / 2) as i32, &format!("{:#?}", lf));
+                        engine.draw();
+                    }
                 }
             }
 

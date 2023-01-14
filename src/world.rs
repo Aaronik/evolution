@@ -327,7 +327,7 @@ impl World {
         id
     }
 
-    fn lifeform_at_location(&self, location: &(usize, usize)) -> Option<&LifeForm> {
+    pub fn lifeform_at_location(&self, location: &(usize, usize)) -> Option<&LifeForm> {
         for lf in self.lifeforms.values() {
             if &lf.location == location {
                 return Some(lf);
