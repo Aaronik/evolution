@@ -27,7 +27,8 @@ fn main() {
 
     let mut world = World::new(world_props);
     let mut engine =
-        console_engine::ConsoleEngine::init((size * 3) as u32, (size + 2) as u32, frame_rate).unwrap();
+        console_engine::ConsoleEngine::init((size * 3) as u32, (size + 2) as u32, frame_rate)
+            .unwrap();
 
     let mut paused = false;
 
@@ -36,19 +37,19 @@ fn main() {
     // of engine.poll() way. However it'd also be really nice to add an escape hatch to run
     // the evolution and not show anything on the screen.
     loop {
-        if paused {
-            engine.wait_frame();
-        }
-
         // Poll next event
         match engine.poll() {
             // A frame has passed
             Event::Frame => {
-                step(size, &mut engine, &mut world);
+                if !paused {
+                    step(size, &mut engine, &mut world);
+                }
             }
 
             // A Key has been pressed
             Event::Key(keyevent) => {
+                println!("keyevent: {:?}", keyevent);
+
                 if keyevent.code == KeyCode::Char('q') {
                     break;
                 }
@@ -131,16 +132,39 @@ fn step(size: usize, engine: &mut ConsoleEngine, world: &mut World) {
     let stats: Vec<(usize, usize, f32, f32, f32, (usize, usize))> = world
         .lifeforms
         .values()
-        .map(|lf| (lf.id, lf.lifespan, lf.health, lf.hunger, lf.thirst, lf.location))
+        .map(|lf| {
+            (
+                lf.id,
+                lf.lifespan,
+                lf.health,
+                lf.hunger,
+                lf.thirst,
+                lf.location,
+            )
+        })
         .collect();
 
     // let stats = format!("{:#?}", stats);
 
     // Stats
-    engine.line((size + 1) as i32, 0, (size + 1) as i32, (engine.get_height() - 2) as i32, pixel::pxl('|'));
-    engine.print((size + 2) as i32, 0, "Stats: id, lifespan, health, hunger, thirst");
+    engine.line(
+        (size + 1) as i32,
+        0,
+        (size + 1) as i32,
+        (engine.get_height() - 2) as i32,
+        pixel::pxl('|'),
+    );
+    engine.print(
+        (size + 2) as i32,
+        0,
+        "Stats: id, lifespan, health, hunger, thirst",
+    );
     for (idx, stat) in stats.iter().enumerate() {
-        engine.print((size + 2) as i32, (idx + 1) as i32, &format!("{:.10?}", stat));
+        engine.print(
+            (size + 2) as i32,
+            (idx + 1) as i32,
+            &format!("{:.10?}", stat),
+        );
     }
     // engine.print((size + 2) as i32, 1, &stats);
 
