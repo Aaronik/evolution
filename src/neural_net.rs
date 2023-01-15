@@ -144,7 +144,7 @@ pub enum OutputNeuronType {
     MoveLeft,
     Attack,
     Mate,
-    // TODO MoveRandom
+    MoveRandom,
 }
 
 #[derive(Debug, Default, Clone)]

@@ -3,7 +3,7 @@ use rand::{thread_rng, Rng};
 use std::collections::{HashMap, HashSet};
 
 #[derive(Debug)]
-pub struct WorldProps {
+pub struct WorldProps<'a> {
     pub size: usize,
     pub num_initial_lifeforms: usize,
     pub genome_size: usize,
@@ -16,23 +16,24 @@ pub struct WorldProps {
 
     /// After how many frames does a new water appear
     pub water_density: usize,
+    pub neural_net_helper: &'a NeuralNetHelper,
+
 }
 
 #[derive(Debug)]
-pub struct World {
-    props: WorldProps,
+pub struct World<'a> {
+    props: WorldProps<'a>,
     pub lifeforms: HashMap<usize, LifeForm>,
     pub food: HashSet<(usize, usize)>,
     pub water: HashSet<(usize, usize)>,
     pub danger: HashSet<(usize, usize)>,
     oscillator: f32,
     tics: usize,
-    neural_net_helper: NeuralNetHelper,
 }
 
-impl World {
-    pub fn new(props: WorldProps) -> Self {
-        let neural_net_helper = NeuralNetHelper::new(props.num_inner_neurons);
+impl<'a> World<'a> {
+    pub fn new(props: WorldProps<'a>) -> Self {
+        let neural_net_helper = &props.neural_net_helper;
 
         // LifeForm generation
         let mut lifeforms = HashMap::new();
@@ -55,7 +56,6 @@ impl World {
             water,
             danger,
             lifeforms,
-            neural_net_helper,
             oscillator: 0.0,
             tics: 0,
         }
@@ -124,7 +124,8 @@ impl World {
             }
 
             // Enact the effects of output neurons
-            let output_neuron_probabilities = lf.calculate_output_probabilities(&self.neural_net_helper);
+            let output_neuron_probabilities = lf.calculate_output_probabilities(&self.props.neural_net_helper);
+            // println!("output_neuron_probabilities: {:?}", output_neuron_probabilities); // TODO
             self.process_output_probabilities(&mut lf, output_neuron_probabilities);
 
             // Overwrite the lifeform in our hashmap
@@ -148,7 +149,7 @@ impl World {
                 let lf = LifeForm::new(
                     self.available_lifeform_id(),
                     self.props.genome_size,
-                    &self.neural_net_helper,
+                    &self.props.neural_net_helper,
                 );
                 self.lifeforms.insert(lf.id, lf);
             }
@@ -165,7 +166,7 @@ impl World {
             let genome: Genome;
 
             if Evolver::should_mutate(1.0) {
-                genome = Evolver::mutate(&most_fit_lf.genome, &self.neural_net_helper);
+                genome = Evolver::mutate(&most_fit_lf.genome, &self.props.neural_net_helper);
             } else {
                 genome = most_fit_lf.genome.clone();
             }
@@ -178,7 +179,7 @@ impl World {
                 hunger: 0.0,
                 thirst: 0.0,
                 lifespan: 0,
-                neural_net: self.neural_net_helper.spawn(),
+                neural_net: self.props.neural_net_helper.spawn(),
             };
 
             to_add.push(lf);
@@ -214,12 +215,9 @@ impl World {
         let size = self.props.size;
 
         for (neuron_type, value) in probabilities {
-            if value <= 0.0 {
-                return;
-            }
 
             // This reads as continue on with the probability of value so long as value is above 0.
-            if !thread_rng().gen_bool(value as f64) {
+            if value <= 0.0 || !thread_rng().gen_bool(value as f64) {
                 return;
             }
 
@@ -230,6 +228,7 @@ impl World {
                 OutputNeuronType::MoveDown => loc.1 = usize::min(loc.1 + 1, size),
                 OutputNeuronType::MoveLeft if loc.0 == 0 => (),
                 OutputNeuronType::MoveLeft => loc.0 -= 1,
+                OutputNeuronType::MoveRandom => loc = randomize(size, loc),
                 OutputNeuronType::Attack => (),
                 OutputNeuronType::Mate => (),
             }
@@ -510,4 +509,39 @@ fn direc(from: &(usize, usize), to: &(usize, usize)) -> f32 {
 
     // Otherwise it's the same point
     0.0
+}
+
+/// Relocate one step randomly
+fn randomize(size: usize, mut loc: (usize, usize)) -> (usize, usize) {
+    if loc.0 == 0 {
+        loc.0 = 1;
+        return loc;
+    } else if loc.0 == size {
+        loc.0 = size - 1;
+        return loc;
+    } else if loc.1 == 0 {
+        loc.1 = 1;
+        return loc;
+    } else if loc.1 == size {
+        loc.1 = size - 1;
+        return loc;
+    }
+
+    if thread_rng().gen_bool(0.5) {
+        if thread_rng().gen_bool(0.5) {
+            loc.0 += 1;
+            return loc;
+        } else {
+            loc.0 -= 1;
+            return loc;
+        }
+    } else {
+        if thread_rng().gen_bool(0.5) {
+            loc.1 += 1;
+            return loc;
+        } else {
+            loc.1 -= 1;
+            return loc;
+        }
+    }
 }
