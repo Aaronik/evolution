@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use console_engine::crossterm::event::MouseEventKind;
 use console_engine::events::Event;
 use console_engine::pixel;
@@ -148,11 +150,30 @@ fn step(size: usize, engine: &mut ConsoleEngine, world: &mut World) {
 
     world.step();
 
+    let mut num_at_location: HashMap<(usize, usize), usize> = HashMap::new();
+
     for lifeform in world.lifeforms.values() {
+        *num_at_location.entry(lifeform.location).or_insert(0) += 1;
+        let num = num_at_location[&lifeform.location];
+
+        let char = match num {
+            0 => '0',
+            1 => '1',
+            2 => '2',
+            3 => '3',
+            4 => '4',
+            5 => '5',
+            6 => '6',
+            7 => '7',
+            8 => '8',
+            9 => '9',
+            _ => '!',
+        };
+
         engine.set_pxl(
             lifeform.location.0 as i32,
             lifeform.location.1 as i32,
-            pixel::pxl_fg('O', Color::White),
+            pixel::pxl_fg(char, Color::White),
         );
     }
 

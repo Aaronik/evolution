@@ -211,7 +211,7 @@ impl<'a> World<'a> {
         lf: &mut LifeForm,
         probabilities: Vec<(OutputNeuronType, f32)>,
     ) {
-        let mut loc = lf.location;
+        let mut loc = &mut lf.location;
         let size = self.props.size;
 
         for (neuron_type, value) in probabilities {
@@ -228,19 +228,11 @@ impl<'a> World<'a> {
                 OutputNeuronType::MoveDown => loc.1 = usize::min(loc.1 + 1, size),
                 OutputNeuronType::MoveLeft if loc.0 == 0 => (),
                 OutputNeuronType::MoveLeft => loc.0 -= 1,
-                OutputNeuronType::MoveRandom => loc = randomize(size, loc),
+                OutputNeuronType::MoveRandom => randomize(size, loc),
                 OutputNeuronType::Attack => (),
                 OutputNeuronType::Mate => (),
             }
         }
-
-        // We can only move there if it's unoccupied!
-        // TODO This is not working, or somehow lfs are still all
-        // on top of each other. Maybe actually it's in another place, like birth.
-        if let None = self.lifeform_at_location(&loc) {
-            lf.location = loc;
-        }
-
     }
 
     /// Go through each lifeform and update the inputs for their neural_nets
@@ -512,36 +504,36 @@ fn direc(from: &(usize, usize), to: &(usize, usize)) -> f32 {
 }
 
 /// Relocate one step randomly
-fn randomize(size: usize, mut loc: (usize, usize)) -> (usize, usize) {
+fn randomize(size: usize, mut loc: &mut (usize, usize)) {
     if loc.0 == 0 {
         loc.0 = 1;
-        return loc;
+        return;
     } else if loc.0 == size {
         loc.0 = size - 1;
-        return loc;
+        return;
     } else if loc.1 == 0 {
         loc.1 = 1;
-        return loc;
+        return;
     } else if loc.1 == size {
         loc.1 = size - 1;
-        return loc;
+        return;
     }
 
     if thread_rng().gen_bool(0.5) {
         if thread_rng().gen_bool(0.5) {
             loc.0 += 1;
-            return loc;
+            return;
         } else {
             loc.0 -= 1;
-            return loc;
+            return;
         }
     } else {
         if thread_rng().gen_bool(0.5) {
             loc.1 += 1;
-            return loc;
+            return;
         } else {
             loc.1 -= 1;
-            return loc;
+            return;
         }
     }
 }
