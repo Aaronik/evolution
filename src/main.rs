@@ -101,23 +101,17 @@ fn main() {
 fn print_info(lf: &LifeForm, size: &usize, nnh: &NeuralNetHelper, engine: &mut ConsoleEngine) {
     // Clear the screen part that we're using
     let x = (size + 2) as i32;
-
     for i in 0..engine.get_height() {
         engine.print(x, i as i32, &format!("{: ^100}", " "));
     }
-
     engine.draw();
 
     let x = (size + 2) as i32;
     let y = 0 as i32;
     engine.print(x, y, &format!("LifeForm {} at {:?}", lf.id, lf.location));
-
     let y = y + 1;
-
     engine.print(x, y, "------- INPUTS --------");
-
     let y = y + 1;
-
     for (idx, (neuron_type, neuron)) in lf.neural_net.input_neurons.values().enumerate() {
         engine.print(
             x,
@@ -125,23 +119,15 @@ fn print_info(lf: &LifeForm, size: &usize, nnh: &NeuralNetHelper, engine: &mut C
             &format!("{:?}: {:?}", neuron_type, neuron.value),
         );
     }
-
     let y = y + lf.neural_net.input_neurons.len() as i32;
-
     engine.print(x, y, "------- OUTPUTS -------");
-
     let y = y + 1;
-
     let probabilities = lf.run_neural_net(&nnh);
-
     for (idx, (neuron_type, prob)) in probabilities.iter().enumerate() {
         engine.print(x, y + idx as i32, &format!("{:?}: {}", neuron_type, prob));
     }
-
     let y = y + probabilities.len() as i32;
-
     engine.print(x, y, "-------");
-
     engine.draw();
 }
 
@@ -152,13 +138,13 @@ fn step(size: usize, engine: &mut ConsoleEngine, world: &mut World) {
 
     let mut num_at_location: HashMap<(usize, usize), usize> = HashMap::new();
 
-    for lifeform in world.lifeforms.values() {
-        *num_at_location.entry(lifeform.location).or_insert(0) += 1;
-        let num = num_at_location[&lifeform.location];
+    for lf in world.lifeforms.values() {
+        *num_at_location.entry(lf.location).or_insert(0) += 1;
+        let num = num_at_location[&lf.location];
 
         let char = match num {
-            0 => '0',
-            1 => '1',
+            1 if lf.health >= 0.5 => '☺',
+            1 if lf.health < 0.5 => '☹',
             2 => '2',
             3 => '3',
             4 => '4',
@@ -170,10 +156,24 @@ fn step(size: usize, engine: &mut ConsoleEngine, world: &mut World) {
             _ => '!',
         };
 
+        let color = match lf.health {
+            _ if lf.health >= 0.9 => Color::Green,
+            _ if lf.health >= 0.8 => Color::DarkGreen,
+            _ if lf.health >= 0.7 => Color::Blue,
+            _ if lf.health >= 0.6 => Color::DarkBlue,
+            _ if lf.health >= 0.5 => Color::DarkMagenta,
+            _ if lf.health >= 0.4 => Color::Magenta,
+            _ if lf.health >= 0.3 => Color::DarkYellow,
+            _ if lf.health >= 0.2 => Color::Yellow,
+            _ if lf.health >= 0.1 => Color::DarkRed,
+            _ if lf.health < 0.1 => Color::Red,
+            _ => Color::White,
+        };
+
         engine.set_pxl(
-            lifeform.location.0 as i32,
-            lifeform.location.1 as i32,
-            pixel::pxl_fg(char, Color::White),
+            lf.location.0 as i32,
+            lf.location.1 as i32,
+            pixel::pxl_fg(char, color),
         );
     }
 
@@ -181,7 +181,7 @@ fn step(size: usize, engine: &mut ConsoleEngine, world: &mut World) {
         engine.set_pxl(
             water.0 as i32,
             water.1 as i32,
-            pixel::pxl_fg('O', Color::Blue),
+            pixel::pxl_fg('W', Color::Blue),
         );
     }
 
@@ -189,7 +189,7 @@ fn step(size: usize, engine: &mut ConsoleEngine, world: &mut World) {
         engine.set_pxl(
             food.0 as i32,
             food.1 as i32,
-            pixel::pxl_fg('O', Color::Green),
+            pixel::pxl_fg('F', Color::Green),
         );
     }
 
@@ -197,7 +197,7 @@ fn step(size: usize, engine: &mut ConsoleEngine, world: &mut World) {
         engine.set_pxl(
             danger.0 as i32,
             danger.1 as i32,
-            pixel::pxl_fg('O', Color::Red),
+            pixel::pxl_fg('☠', Color::Red),
         );
     }
 
