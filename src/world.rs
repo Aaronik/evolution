@@ -29,6 +29,7 @@ pub struct World<'a> {
     pub danger: HashSet<(usize, usize)>,
     oscillator: f32,
     tics: usize,
+    pub events: Vec<String>,
 }
 
 impl<'a> World<'a> {
@@ -49,6 +50,7 @@ impl<'a> World<'a> {
         let food = HashSet::new();
         let water = HashSet::new();
         let danger = HashSet::from([(props.size / 2, props.size)]); // TODO make random, take variable amount
+        // TODO Add a health booster
 
         Self {
             props,
@@ -58,6 +60,7 @@ impl<'a> World<'a> {
             lifeforms,
             oscillator: 0.0,
             tics: 0,
+            events: vec![],
         }
     }
 
@@ -120,6 +123,7 @@ impl<'a> World<'a> {
 
             if lf.health <= 0.0 {
                 self.lifeforms.remove(&lf.id);
+                self.events.push(format!("Lifeform {} has died!", lf.id));
                 continue;
             }
 

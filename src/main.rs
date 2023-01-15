@@ -3,8 +3,8 @@ use std::collections::HashMap;
 use console_engine::crossterm::event::MouseEventKind;
 use console_engine::events::Event;
 use console_engine::pixel;
+use console_engine::screen::Screen;
 use console_engine::Color;
-use console_engine::ConsoleEngine;
 use console_engine::KeyCode;
 use evolution::*;
 
@@ -13,7 +13,7 @@ use evolution::*;
 // * Add physics for when lifeforms get down to so many, they auto reproduce
 
 fn main() {
-    let size = 50;
+    let size = 20;
     let frame_rate = 1000;
     let num_inner_neurons = 3;
 
@@ -34,11 +34,27 @@ fn main() {
 
     let mut world = World::new(world_props);
 
-    // println!("lifeforms: {:#?}", world.lifeforms.values().map(|lf| &lf.genome).collect::<Vec<&Genome>>());
+    let width = (size * 3) as u32;
+    let height = (size + 2) as u32;
+    let mut engine = console_engine::ConsoleEngine::init(width, height, frame_rate).unwrap();
 
-    let mut engine =
-        console_engine::ConsoleEngine::init((size * 3) as u32, (size + 2) as u32, frame_rate)
-            .unwrap();
+    // The screen where all the lifeforms appear
+    let mut main_screen = Screen::new(size as u32, size as u32);
+    let mut controls_screen = Screen::new((size * 3) as u32, 2);
+    let mut stats_screen = Screen::new((size * 2) as u32, engine.get_height());
+    let mut info_screen = Screen::new((size * 2) as u32, engine.get_height());
+
+    // Controls
+    controls_screen.print(
+        0,
+        0,
+        format!(
+            "controls: q = quit | p = pause | f = change frame rate | e = evolve without UI | frame {}",
+            engine.frame_count
+        )
+        .as_str(),
+    );
+    controls_screen.draw();
 
     let mut paused = false;
 
@@ -46,13 +62,31 @@ fn main() {
     // target_fps. If this becomes a real issue we can switch back to the normal way instead
     // of engine.poll() way. However it'd also be really nice to add an escape hatch to run
     // the evolution and not show anything on the screen.
+    // This is documented here: https://github.com/VincentFoulon80/console_engine/issues/17
     loop {
         // Poll next event
         match engine.poll() {
             // A frame has passed
             Event::Frame => {
                 if !paused {
-                    step(size, &mut engine, &mut world);
+                    engine.clear_screen();
+                    for screen in [
+                        &mut main_screen,
+                        &mut controls_screen,
+                        &mut stats_screen,
+                        &mut info_screen,
+                    ] {
+                        screen.clear();
+                    }
+
+                    world.step();
+
+                    // update_main_screen(&mut main_screen, &world);
+                    // update_stats_screen(&mut stats_screen, &world);
+
+                    // engine.print_screen(0, 0, &main_screen);
+                    // engine.print_screen(0, (engine.get_height() - 1) as i32, &controls_screen);
+                    // engine.print_screen((size + 2) as i32, 0, &stats_screen);
                 }
             }
 
@@ -87,7 +121,8 @@ fn main() {
                     let loc = (mouseevent.column as usize, mouseevent.row as usize);
                     let lf = world.lifeform_at_location(&loc);
                     if let Some(lf) = lf {
-                        print_info(lf, &size, &nnh, &mut engine);
+                        update_info_screen(lf, &nnh, &mut info_screen);
+                        engine.print_screen((size + 2) as i32, 0, &info_screen);
                     }
                 }
             }
@@ -98,44 +133,36 @@ fn main() {
     }
 }
 
-fn print_info(lf: &LifeForm, size: &usize, nnh: &NeuralNetHelper, engine: &mut ConsoleEngine) {
+fn update_info_screen(lf: &LifeForm, nnh: &NeuralNetHelper, screen: &mut Screen) {
     // Clear the screen part that we're using
-    let x = (size + 2) as i32;
-    for i in 0..engine.get_height() {
-        engine.print(x, i as i32, &format!("{: ^100}", " "));
-    }
-    engine.draw();
+    screen.clear();
 
-    let x = (size + 2) as i32;
+    let x = 0 as i32;
     let y = 0 as i32;
-    engine.print(x, y, &format!("LifeForm {} at {:?}", lf.id, lf.location));
+    screen.print(x, y, &format!("LifeForm {} at {:?}", lf.id, lf.location));
     let y = y + 1;
-    engine.print(x, y, "------- INPUTS --------");
+    screen.print(x, y, "------- INPUTS --------");
     let y = y + 1;
     for (idx, (neuron_type, neuron)) in lf.neural_net.input_neurons.values().enumerate() {
-        engine.print(
+        screen.print(
             x,
             y + idx as i32,
             &format!("{:?}: {:?}", neuron_type, neuron.value),
         );
     }
     let y = y + lf.neural_net.input_neurons.len() as i32;
-    engine.print(x, y, "------- OUTPUTS -------");
+    screen.print(x, y, "------- OUTPUTS -------");
     let y = y + 1;
     let probabilities = lf.run_neural_net(&nnh);
     for (idx, (neuron_type, prob)) in probabilities.iter().enumerate() {
-        engine.print(x, y + idx as i32, &format!("{:?}: {}", neuron_type, prob));
+        screen.print(x, y + idx as i32, &format!("{:?}: {}", neuron_type, prob));
     }
     let y = y + probabilities.len() as i32;
-    engine.print(x, y, "-------");
-    engine.draw();
+    screen.print(x, y, "-------");
+    screen.draw();
 }
 
-fn step(size: usize, engine: &mut ConsoleEngine, world: &mut World) {
-    engine.clear_screen(); // reset the screen
-
-    world.step();
-
+fn update_main_screen(screen: &mut Screen, world: &World) {
     let mut num_at_location: HashMap<(usize, usize), usize> = HashMap::new();
 
     for lf in world.lifeforms.values() {
@@ -170,7 +197,7 @@ fn step(size: usize, engine: &mut ConsoleEngine, world: &mut World) {
             _ => Color::White,
         };
 
-        engine.set_pxl(
+        screen.set_pxl(
             lf.location.0 as i32,
             lf.location.1 as i32,
             pixel::pxl_fg(char, color),
@@ -178,7 +205,7 @@ fn step(size: usize, engine: &mut ConsoleEngine, world: &mut World) {
     }
 
     for water in &world.water {
-        engine.set_pxl(
+        screen.set_pxl(
             water.0 as i32,
             water.1 as i32,
             pixel::pxl_fg('W', Color::Blue),
@@ -186,7 +213,7 @@ fn step(size: usize, engine: &mut ConsoleEngine, world: &mut World) {
     }
 
     for food in &world.food {
-        engine.set_pxl(
+        screen.set_pxl(
             food.0 as i32,
             food.1 as i32,
             pixel::pxl_fg('F', Color::Green),
@@ -194,24 +221,17 @@ fn step(size: usize, engine: &mut ConsoleEngine, world: &mut World) {
     }
 
     for danger in &world.danger {
-        engine.set_pxl(
+        screen.set_pxl(
             danger.0 as i32,
             danger.1 as i32,
             pixel::pxl_fg('☠', Color::Red),
         );
     }
 
-    // Controls
-    engine.print(
-        0,
-        (engine.get_height() - 1) as i32,
-        format!(
-            "controls: q = quit | p = pause | f = change frame rate | e = evolve without UI | frame {}",
-            engine.frame_count
-        )
-        .as_str(),
-    );
+    screen.draw();
+}
 
+fn update_stats_screen(screen: &mut Screen, world: &World) {
     let stats: Vec<(usize, usize, f32, f32, f32, (usize, usize))> = world
         .lifeforms
         .values()
@@ -227,29 +247,12 @@ fn step(size: usize, engine: &mut ConsoleEngine, world: &mut World) {
         })
         .collect();
 
-    // let stats = format!("{:#?}", stats);
-
     // Stats
-    engine.line(
-        (size + 1) as i32,
-        0,
-        (size + 1) as i32,
-        (engine.get_height() - 2) as i32,
-        pixel::pxl('|'),
-    );
-    engine.print(
-        (size + 2) as i32,
-        0,
-        "Stats: id, lifespan, health, hunger, thirst",
-    );
+    screen.line(0, 0, 0, (screen.get_height() - 2) as i32, pixel::pxl('|'));
+    screen.print(1, 0, "Stats: id, lifespan, health, hunger, thirst");
     for (idx, stat) in stats.iter().enumerate() {
-        engine.print(
-            (size + 2) as i32,
-            (idx + 1) as i32,
-            &format!("{:.10?}", stat),
-        );
+        screen.print(1, idx as i32, &format!("{:.10?}", stat));
     }
-    // engine.print((size + 2) as i32, 1, &stats);
 
-    engine.draw(); // draw the screen
+    screen.draw();
 }
