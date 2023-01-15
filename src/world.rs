@@ -124,7 +124,7 @@ impl<'a> World<'a> {
             }
 
             // Enact the effects of output neurons
-            let output_neuron_probabilities = lf.calculate_output_probabilities(&self.props.neural_net_helper);
+            let output_neuron_probabilities = lf.run_neural_net(&self.props.neural_net_helper);
             // println!("output_neuron_probabilities: {:?}", output_neuron_probabilities); // TODO
             self.process_output_probabilities(&mut lf, output_neuron_probabilities);
 

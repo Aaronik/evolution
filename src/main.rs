@@ -86,13 +86,30 @@ fn main() {
                     let lf = world.lifeform_at_location(&loc);
                     if let Some(lf) = lf {
                         let x = (size + 2) as i32;
-                        let y = ((size / 2) - 5) as i32;
+
+                        for i in 0..engine.get_height() {
+                            engine.print(x, i as i32, &format!("{: ^100}", " "));
+                        }
+
+                        engine.draw();
+
+                        let x = (size + 2) as i32;
+                        let y = 0 as i32;
                         engine.print(
                             x,
-                            y - 2,
+                            y,
                             &format!("LifeForm {} at {:?}", lf.id, lf.location),
                         );
-                        for (idx, (neuron_type, neuron)) in lf.neural_net.input_neurons.values().enumerate() {
+
+                        let y = y + 1;
+
+                        engine.print(x, y, "-------");
+
+                        let y = y + 1;
+
+                        for (idx, (neuron_type, neuron)) in
+                            lf.neural_net.input_neurons.values().enumerate()
+                        {
                             engine.print(
                                 x,
                                 y + idx as i32,
@@ -100,19 +117,31 @@ fn main() {
                             );
                         }
 
-                        engine.print(x, y + lf.neural_net.input_neurons.len() as i32, "--");
+                        let y = y + lf.neural_net.input_neurons.len() as i32;
+
+                        engine.print(x, y, "-------");
+
+                        let y = y + 1;
+
+                        let probabilities = lf.run_neural_net(&nnh);
 
                         // engine.print((size + 2) as i32, ((size / 2) - 1) as i32, &format!("Input genes:"));
-                        for (idx, (neuron_type, prob)) in
-                            lf.calculate_output_probabilities(&nnh).iter().enumerate()
-                        {
+                        for (idx, (neuron_type, prob)) in probabilities.iter().enumerate() {
                             engine.print(
                                 x,
-                                y + idx as i32 + lf.neural_net.input_neurons.len() as i32 + 1,
+                                y + idx as i32,
                                 &format!("{:?}: {}", neuron_type, prob),
                             );
                         }
-                        // engine.print((size + 2) as i32, (size / 2) as i32, &format!("{:#?}", lf));
+
+                        let y = y + probabilities.len() as i32;
+
+                        engine.print(x, y, "-------");
+
+                        let y = y + 1;
+
+                        // engine.print(x, y, &format!("{:?}", lf.genome.ordered_genes.iter().map(|g| g.).join("-")))
+
                         engine.draw();
                     }
                 }
