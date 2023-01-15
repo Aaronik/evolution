@@ -124,7 +124,7 @@ impl World {
             }
 
             // Enact the effects of output neurons
-            let output_neuron_probabilities = lf.calculate_output_probabilities();
+            let output_neuron_probabilities = lf.calculate_output_probabilities(&self.neural_net_helper);
             self.process_output_probabilities(&mut lf, output_neuron_probabilities);
 
             // Overwrite the lifeform in our hashmap

@@ -99,12 +99,10 @@ impl Genome {
     }
 
     pub fn classify_gene(nnh: &NeuralNetHelper, gene: &Gene) -> GeneType {
-        let type_of = |id: &usize| nnh.neuron_type_map.get(id).unwrap();
-
-        if let NeuronType::InputNeuron = type_of(&gene.from) {
+        if let NeuronType::InputNeuron = nnh.neuron_type(&gene.from) {
             return GeneType::InputGene;
-        } else if let NeuronType::InnerNeuron = type_of(&gene.from) {
-            if let NeuronType::InnerNeuron = type_of(&gene.to) {
+        } else if let NeuronType::InnerNeuron = nnh.neuron_type(&gene.from) {
+            if let NeuronType::InnerNeuron = nnh.neuron_type(&gene.to) {
                 return GeneType::InnerGene;
             }
         }

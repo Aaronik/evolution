@@ -13,8 +13,7 @@ pub struct NeuralNetHelper {
     pub inner_neurons: HashMap<usize, InnerNeuron>,
     pub output_neurons: HashMap<usize, (OutputNeuronType, OutputNeuron)>,
 
-    pub neuron_type_map: HashMap<usize, NeuronType>,
-
+    neuron_type_map: HashMap<usize, NeuronType>,
     input_inner_neuron_ids: Vec<usize>,
     inner_output_neuron_ids: Vec<usize>,
 }
@@ -94,6 +93,10 @@ impl NeuralNetHelper {
     pub fn random_to_neuron(&self) -> usize {
         let idx = thread_rng().gen_range(0..self.inner_output_neuron_ids.len());
         self.inner_output_neuron_ids[idx].clone()
+    }
+
+    pub fn neuron_type(&self, neuron_id: &usize) -> &NeuronType {
+        &self.neuron_type_map[neuron_id]
     }
 }
 

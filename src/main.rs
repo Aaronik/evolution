@@ -17,7 +17,7 @@ fn main() {
     let world_props = WorldProps {
         size,
         num_initial_lifeforms: 20,
-        genome_size: 20,
+        genome_size: 25,
         mutation_rate: 0.001,
         food_density: 300,
         water_density: 30,

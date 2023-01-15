@@ -38,7 +38,10 @@ impl LifeForm {
     }
 
     /// returns a list of probablities associated with output neuron types
-    pub fn calculate_output_probabilities(&self) -> Vec<(OutputNeuronType, f32)> {
+    pub fn calculate_output_probabilities(
+        &self,
+        nnh: &NeuralNetHelper,
+    ) -> Vec<(OutputNeuronType, f32)> {
         // * let running_sums = HashMap<neuron_id, sum>
         // * HashMap<neuron_id, NeuronType> (calculated at lifeform birth)
 
@@ -108,6 +111,54 @@ impl LifeForm {
         }
 
         println!("{} ordered_genes", ordered_genes.len());
+
+        // Idea here is to go through each gene in the ordered genes here and if there's an entry
+        // in the running sums map, add that... Trailing off b/c I have another idea.
+        for gene in ordered_genes {
+
+            if let NeuronType::InputNeuron = nnh.neuron_type(&gene.from) {
+                running_sums.insert(gene.from, self.neural_net.input_neurons[&gene.from].1.value);
+            }
+
+            if let Some(sum) = running_sums.get(&gene.from) {
+                *running_sums.entry(gene.to).or_insert(0.0) += sum.tanh() * gene.weight;
+            }
+
+            // *running_sums.entry(gene.to).or_insert(0.0) +=
+            //     running_sums[&gene.from].tanh() * gene.weight;
+
+            // match nnh.neuron_type(&gene.from) {
+            //     NeuronType::InputNeuron => {
+            //         running_sums.insert(
+            //             gene.to,
+            //             self.neural_net.input_neurons[&gene.from].1.value.tan() * gene.weight,
+            //         );
+            //         running_sums
+            //             .entry(gene.to)
+            //             .and_modify(|sum| *sum += )
+            //     }
+            //     NeuronType::InnerNeuron => (),
+            //     NeuronType::OutputNeuron => (),
+            // }
+
+            // *running_sums.entry(gene.to).or_insert(0.0) +=
+            //     running_sums.entry(gene.from).or_insert(0.0).tanh() * gene.weight;
+
+        }
+
+        // println!("running_sums: {:?}", running_sums);
+
+        for (neuron_id, sum) in running_sums {
+            if let NeuronType::OutputNeuron = nnh.neuron_type(&neuron_id) {
+
+            }
+
+            if let Some((neuron_type, _)) = nnh.output_neurons.get(&neuron_id) {
+                final_output_values.push((neuron_type.clone(), sum.tanh()));
+            }
+        }
+
+        println!("final_output_values: {:?}", final_output_values);
 
         // // First calculate the running sums for all of the input neurons
         // for gene in &self.genome.input_genes {
