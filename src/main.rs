@@ -85,64 +85,7 @@ fn main() {
                     let loc = (mouseevent.column as usize, mouseevent.row as usize);
                     let lf = world.lifeform_at_location(&loc);
                     if let Some(lf) = lf {
-                        let x = (size + 2) as i32;
-
-                        for i in 0..engine.get_height() {
-                            engine.print(x, i as i32, &format!("{: ^100}", " "));
-                        }
-
-                        engine.draw();
-
-                        let x = (size + 2) as i32;
-                        let y = 0 as i32;
-                        engine.print(
-                            x,
-                            y,
-                            &format!("LifeForm {} at {:?}", lf.id, lf.location),
-                        );
-
-                        let y = y + 1;
-
-                        engine.print(x, y, "-------");
-
-                        let y = y + 1;
-
-                        for (idx, (neuron_type, neuron)) in
-                            lf.neural_net.input_neurons.values().enumerate()
-                        {
-                            engine.print(
-                                x,
-                                y + idx as i32,
-                                &format!("{:?}: {:?}", neuron_type, neuron.value),
-                            );
-                        }
-
-                        let y = y + lf.neural_net.input_neurons.len() as i32;
-
-                        engine.print(x, y, "-------");
-
-                        let y = y + 1;
-
-                        let probabilities = lf.run_neural_net(&nnh);
-
-                        // engine.print((size + 2) as i32, ((size / 2) - 1) as i32, &format!("Input genes:"));
-                        for (idx, (neuron_type, prob)) in probabilities.iter().enumerate() {
-                            engine.print(
-                                x,
-                                y + idx as i32,
-                                &format!("{:?}: {}", neuron_type, prob),
-                            );
-                        }
-
-                        let y = y + probabilities.len() as i32;
-
-                        engine.print(x, y, "-------");
-
-                        let y = y + 1;
-
-                        // engine.print(x, y, &format!("{:?}", lf.genome.ordered_genes.iter().map(|g| g.).join("-")))
-
-                        engine.draw();
+                        print_info(lf, &size, &nnh, &mut engine);
                     }
                 }
             }
@@ -151,6 +94,53 @@ fn main() {
             Event::Resize(_w, _h) => { /* ... */ }
         }
     }
+}
+
+fn print_info(lf: &LifeForm, size: &usize, nnh: &NeuralNetHelper, engine: &mut ConsoleEngine) {
+    // Clear the screen part that we're using
+    let x = (size + 2) as i32;
+
+    for i in 0..engine.get_height() {
+        engine.print(x, i as i32, &format!("{: ^100}", " "));
+    }
+
+    engine.draw();
+
+    let x = (size + 2) as i32;
+    let y = 0 as i32;
+    engine.print(x, y, &format!("LifeForm {} at {:?}", lf.id, lf.location));
+
+    let y = y + 1;
+
+    engine.print(x, y, "------- INPUTS --------");
+
+    let y = y + 1;
+
+    for (idx, (neuron_type, neuron)) in lf.neural_net.input_neurons.values().enumerate() {
+        engine.print(
+            x,
+            y + idx as i32,
+            &format!("{:?}: {:?}", neuron_type, neuron.value),
+        );
+    }
+
+    let y = y + lf.neural_net.input_neurons.len() as i32;
+
+    engine.print(x, y, "------- OUTPUTS -------");
+
+    let y = y + 1;
+
+    let probabilities = lf.run_neural_net(&nnh);
+
+    for (idx, (neuron_type, prob)) in probabilities.iter().enumerate() {
+        engine.print(x, y + idx as i32, &format!("{:?}: {}", neuron_type, prob));
+    }
+
+    let y = y + probabilities.len() as i32;
+
+    engine.print(x, y, "-------");
+
+    engine.draw();
 }
 
 fn step(size: usize, engine: &mut ConsoleEngine, world: &mut World) {
