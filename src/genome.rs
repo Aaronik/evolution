@@ -57,11 +57,11 @@ impl Genome {
                 weight,
             };
 
-            seed.entry(from).or_insert(vec![]);
-
             if let GeneType::InputGene = Genome::classify_gene(nnh, &gene) {
                 inputs.push(from);
             }
+
+            seed.entry(from).or_insert(vec![]).push(gene);
         }
 
         // TODO I don't think this is necessary any more, we can make this an arbitrary number.
