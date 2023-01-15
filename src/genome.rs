@@ -76,6 +76,7 @@ impl Genome {
     }
 
     /// Takes a gene and inserts it into the genome. Recomputes the ordered_genes value.
+    /// TODO Might eventually turn this into register_genes() and have it take a vec of genes
     pub fn register_gene(&mut self, gene: Gene) {
         let mut inputs: Vec<usize> = vec![];
         let mut seed: Seed = HashMap::new();
