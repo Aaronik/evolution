@@ -85,16 +85,30 @@ fn main() {
                     let loc = (mouseevent.column as usize, mouseevent.row as usize);
                     let lf = world.lifeform_at_location(&loc);
                     if let Some(lf) = lf {
+                        let x = (size + 2) as i32;
+                        let y = ((size / 2) - 5) as i32;
                         engine.print(
-                            (size + 2) as i32,
-                            ((size / 2) - 2) as i32,
+                            x,
+                            y - 2,
                             &format!("LifeForm {} at {:?}", lf.id, lf.location),
                         );
-                        // engine.print((size + 2) as i32, ((size / 2) - 1) as i32, &format!("Input genes:"));
-                        for (idx, (neuron_type, prob)) in lf.calculate_output_probabilities(&nnh).iter().enumerate() {
+                        for (idx, (neuron_type, neuron)) in lf.neural_net.input_neurons.values().enumerate() {
                             engine.print(
-                                (size + 2) as i32,
-                                ((size / 2) + idx) as i32,
+                                x,
+                                y + idx as i32,
+                                &format!("{:?}: {:?}", neuron_type, neuron.value),
+                            );
+                        }
+
+                        engine.print(x, y + lf.neural_net.input_neurons.len() as i32, "--");
+
+                        // engine.print((size + 2) as i32, ((size / 2) - 1) as i32, &format!("Input genes:"));
+                        for (idx, (neuron_type, prob)) in
+                            lf.calculate_output_probabilities(&nnh).iter().enumerate()
+                        {
+                            engine.print(
+                                x,
+                                y + idx as i32 + lf.neural_net.input_neurons.len() as i32 + 1,
                                 &format!("{:?}: {}", neuron_type, prob),
                             );
                         }
