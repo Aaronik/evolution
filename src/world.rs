@@ -59,7 +59,7 @@ impl<'a> World<'a> {
         let food = HashSet::new();
         let water = HashSet::new();
         let heals = HashSet::new();
-        let danger = HashSet::from([(props.size / 2, props.size)]); // TODO make random, take variable amount
+        let danger = HashSet::from([(0, 0)]); // TODO make random, take variable amount
                                                                     // TODO Add a health booster
 
         Self {
@@ -147,7 +147,7 @@ impl<'a> World<'a> {
                 // TODO When a really healthy one dies, it'd be nice if it reproduced
                 self.lifeforms.remove(&lf.id);
                 self.events
-                    .push((EventType::Death, format!("Lifeform {} has died!", lf.id)));
+                    .push((EventType::Death, format!("=> Lifeform {} has died!", lf.id)));
                 continue;
             }
 
@@ -182,7 +182,7 @@ impl<'a> World<'a> {
                 self.events.push((
                     EventType::Creation,
                     format!(
-                        "New lifeform {} has been created with a random genome due to insufficient population",
+                        "=> New lifeform {} has been created with a random genome due to insufficient population",
                         &lf.id
                     ),
                 ));
@@ -213,7 +213,7 @@ impl<'a> World<'a> {
             self.events.push((
                 EventType::Creation,
                 format!(
-                    "New lifeform {} has been created based on lifeform {} due to insufficient population",
+                    "=> New lifeform {} has been created based on lifeform {} due to insufficient population",
                     &lf.id, most_fit_lf.id
                 ),
             ));

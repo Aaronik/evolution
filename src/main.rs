@@ -12,7 +12,7 @@ use crossterm::{
 use tui::{
     backend::{Backend, CrosstermBackend},
     layout::{Constraint, Direction, Layout, Rect},
-    style::{Color, Style},
+    style::{Color, Modifier, Style},
     text::Span,
     widgets::{canvas::Canvas, Block, Borders, List, ListItem, Paragraph, Row, Table},
     Frame, Terminal,
@@ -54,9 +54,12 @@ fn main() {
     let mut last_tick = Instant::now();
 
     let mut paused = false;
+    let mut selected_lf_index: i32 = 0;
 
     loop {
-        terminal.draw(|f| ui(f, size, &world, iteration)).unwrap();
+        terminal
+            .draw(|f| ui(f, size, &world, iteration, selected_lf_index))
+            .unwrap();
 
         let timeout = tick_rate
             .checked_sub(last_tick.elapsed())
@@ -67,6 +70,11 @@ fn main() {
                 match key.code {
                     KeyCode::Char('q') => break,
                     KeyCode::Char('p') => paused = !paused,
+                    KeyCode::Up => selected_lf_index = i32::max(0, selected_lf_index - 1),
+                    KeyCode::Down => {
+                        selected_lf_index =
+                            i32::min(world.lifeforms.len() as i32 - 1, selected_lf_index + 1)
+                    }
 
                     // TODO here could pause this loop, call a fn that has another
                     // loop that just steps. In that fn though need to figure out
@@ -102,7 +110,7 @@ fn main() {
     terminal.show_cursor().unwrap();
 }
 
-fn ui<B>(f: &mut Frame<B>, size: usize, world: &World, iteration: usize)
+fn ui<B>(f: &mut Frame<B>, size: usize, world: &World, iteration: usize, selected_lf_index: i32)
 where
     B: Backend,
 {
@@ -112,11 +120,11 @@ where
         .constraints([Constraint::Length(size as u16), Constraint::Min(20)].as_ref())
         .split(f.size());
 
-    draw_main(f, size, world, chunks[0]);
+    draw_main(f, size, selected_lf_index, world, chunks[0]);
     draw_controls(f, chunks[1], iteration);
 }
 
-fn draw_main<B>(f: &mut Frame<B>, size: usize, world: &World, area: Rect)
+fn draw_main<B>(f: &mut Frame<B>, size: usize, selected_lf_index: i32, world: &World, area: Rect)
 where
     B: Backend,
 {
@@ -126,11 +134,22 @@ where
         .constraints([Constraint::Length(size as u16), Constraint::Min(10)].as_ref())
         .split(area);
 
-    draw_world(f, size, world, chunks[0]);
-    draw_right(f, world, chunks[1]);
+    draw_world(f, size, selected_lf_index, world, chunks[0]);
+    draw_right(f, selected_lf_index, world, chunks[1]);
 }
 
-fn draw_world<B>(f: &mut Frame<B>, size: usize, world: &World, area: Rect)
+fn draw_controls<B>(f: &mut Frame<B>, area: Rect, iteration: usize)
+where
+    B: Backend,
+{
+    let block = Block::default().title("Controls").borders(Borders::ALL);
+    let text = format!( "controls: q = quit | p = pause | Up/Down = Select LifeForm | f = change frame rate | e = evolve without UI | iteration {}", iteration);
+    let paragraph = Paragraph::new(text).block(block);
+
+    f.render_widget(paragraph, area);
+}
+
+fn draw_world<B>(f: &mut Frame<B>, size: usize, selected_lf_index: i32, world: &World, area: Rect)
 where
     B: Backend,
 {
@@ -141,13 +160,13 @@ where
         .paint(|ctx| {
             let mut num_at_location: HashMap<(usize, usize), usize> = HashMap::new();
 
-            for lf in world.lifeforms.values() {
+            for (idx, lf) in world.lifeforms.values().enumerate() {
                 *num_at_location.entry(lf.location).or_insert(0) += 1;
                 let num = num_at_location[&lf.location];
 
                 let char = match num {
-                    1 if lf.health >= 0.5 => "☺",
-                    1 if lf.health < 0.5 => "☹",
+                    1 if lf.health >= 0.5 => "☺ ",
+                    1 if lf.health < 0.5 => "☹ ",
                     2 => "2",
                     3 => "3",
                     4 => "4",
@@ -174,11 +193,28 @@ where
                 };
 
                 // TODO add_modifier Modifier::BOLD
-                ctx.print(
-                    lf.location.0 as f64,
-                    lf.location.1 as f64,
-                    Span::styled(char, Style::default().fg(color)),
-                );
+                if idx == selected_lf_index as usize {
+                    ctx.print(
+                        lf.location.0 as f64,
+                        lf.location.1 as f64,
+                        Span::styled(
+                            char,
+                            Style::default()
+                                .fg(color)
+                                .bg(Color::Gray)
+                                .add_modifier(Modifier::BOLD),
+                        ),
+                    );
+                } else {
+                    ctx.print(
+                        lf.location.0 as f64,
+                        lf.location.1 as f64,
+                        Span::styled(
+                            char,
+                            Style::default().fg(color).add_modifier(Modifier::BOLD),
+                        ),
+                    );
+                }
             }
 
             for water in &world.water {
@@ -208,7 +244,7 @@ where
                 ctx.print(
                     danger.0 as f64,
                     danger.1 as f64,
-                    Span::styled("☠", Style::default().fg(Color::White).bg(Color::Red)),
+                    Span::styled("☠ ", Style::default().fg(Color::White).bg(Color::Red).add_modifier(Modifier::BOLD)),
                 );
             }
         });
@@ -216,18 +252,7 @@ where
     f.render_widget(world_canvas, area);
 }
 
-fn draw_controls<B>(f: &mut Frame<B>, area: Rect, iteration: usize)
-where
-    B: Backend,
-{
-    let block = Block::default().title("Controls").borders(Borders::ALL);
-    let text = format!( "controls: q = quit | p = pause | f = change frame rate | e = evolve without UI | iteration {}", iteration);
-    let paragraph = Paragraph::new(text).block(block);
-
-    f.render_widget(paragraph, area);
-}
-
-fn draw_right<B>(f: &mut Frame<B>, world: &World, area: Rect)
+fn draw_right<B>(f: &mut Frame<B>, selected_lf_index: i32, world: &World, area: Rect)
 where
     B: Backend,
 {
@@ -237,11 +262,11 @@ where
         .constraints([Constraint::Percentage(50), Constraint::Percentage(50)].as_ref())
         .split(area);
 
-    draw_stats(f, world, chunks[0]);
-    draw_events(f, world, chunks[1]);
+    draw_stats(f, selected_lf_index, world, chunks[0]);
+    draw_bottom_right(f, selected_lf_index, world, chunks[1]);
 }
 
-fn draw_stats<B>(f: &mut Frame<B>, world: &World, area: Rect)
+fn draw_stats<B>(f: &mut Frame<B>, selected_lf_index: i32, world: &World, area: Rect)
 where
     B: Backend,
 {
@@ -249,7 +274,7 @@ where
         .height(1)
         .bottom_margin(1);
 
-    let rows = world.lifeforms.values().map(|lf| {
+    let rows = world.lifeforms.values().enumerate().map(|(idx, lf)| {
         let cells = vec![
             lf.id.to_string(),
             lf.lifespan.to_string(),
@@ -258,7 +283,13 @@ where
             lf.thirst.to_string(),
             format!("({}, {})", lf.location.0, lf.location.1),
         ];
-        Row::new(cells)
+
+        if idx == (selected_lf_index as usize) {
+            return Row::new(cells).style(Style::default().add_modifier(Modifier::BOLD));
+        } else {
+            return Row::new(cells).style(Style::default());
+        }
+
     });
 
     let table = Table::new(rows)
@@ -276,11 +307,33 @@ where
     f.render_widget(table, area);
 }
 
+fn draw_bottom_right<B>(f: &mut Frame<B>, selected_lf_index: i32, world: &World, area: Rect)
+where
+    B: Backend,
+{
+    let chunks = Layout::default()
+        .direction(Direction::Horizontal)
+        .margin(0)
+        .constraints(
+            [
+                Constraint::Percentage(65),
+                Constraint::Min(17),
+                Constraint::Percentage(25),
+            ]
+            .as_ref(),
+        )
+        .split(area);
+
+    draw_events(f, world, chunks[0]);
+    draw_lf_selection(f, selected_lf_index, world, chunks[1]);
+    draw_lf_info(f, selected_lf_index, world, chunks[2]);
+}
+
 fn draw_events<B>(f: &mut Frame<B>, world: &World, area: Rect)
 where
     B: Backend,
 {
-    let mut lis: Vec<ListItem> = vec![];
+    let mut items: Vec<ListItem> = vec![];
 
     for (event_type, description) in &world.events {
         let color = match event_type {
@@ -288,7 +341,7 @@ where
             EventType::Creation => Color::Cyan,
         };
 
-        lis.insert(
+        items.insert(
             0,
             ListItem::new(Span::from(Span::styled(
                 description,
@@ -297,48 +350,81 @@ where
         );
     }
 
-    let list = List::new(lis).block(Block::default().title("Events").borders(Borders::ALL));
+    let list = List::new(items).block(Block::default().title("Events").borders(Borders::ALL));
 
     f.render_widget(list, area);
 }
 
-//         // Mouse has been moved or clicked
-//         Event::Mouse(mouseevent) => {
-//             if let MouseEventKind::Down(_) = mouseevent.kind {
-//                 paused = true;
-//                 let loc = (mouseevent.column as usize, mouseevent.row as usize);
-//                 let lf = world.lifeform_at_location(&loc);
-//                 if let Some(lf) = lf {
-//                     update_info_screen(lf, &nnh, &mut info_screen);
-//                     engine.print_screen((size + 2) as i32, 0, &info_screen);
-//                 }
-//             }
-//         }
+fn draw_lf_selection<B>(f: &mut Frame<B>, selected_lf_index: i32, world: &World, area: Rect)
+where
+    B: Backend,
+{
+    let items: Vec<ListItem> = world
+        .lifeforms
+        .values()
+        .enumerate()
+        .map(|(idx, lf)| {
+            if idx == selected_lf_index as usize {
+                ListItem::new(format!("=> {}", lf.id)).style(
+                    Style::default()
+                        .bg(Color::White)
+                        .fg(Color::Black)
+                        .add_modifier(Modifier::BOLD),
+                )
+            } else {
+                ListItem::new(format!("{}", lf.id))
+            }
+        })
+        .collect();
+
+    let list = List::new(items).block(
+        Block::default()
+            .title("Select LifeForm")
+            .borders(Borders::ALL),
+    );
+
+    f.render_widget(list, area);
+}
+
+fn draw_lf_info<B>(f: &mut Frame<B>, selected_lf_index: i32, world: &World, area: Rect)
+where
+    B: Backend,
+{
+    let mut items: Vec<ListItem> = vec![];
+
+    let lf_opt = world.lifeforms.values().nth(selected_lf_index as usize);
+    let lf: &LifeForm;
+
+    if let None = lf_opt {
+        return;
+    } else {
+        lf = lf_opt.unwrap();
+    }
+
+    items.push(ListItem::new("-- Input Neurons --"));
+
+    for (neuron_type, neuron) in lf.neural_net.input_neurons.values() {
+        items.push(ListItem::new(format!(
+            "{:?}: {:?}",
+            neuron_type, neuron.value
+        )));
+    }
+
+    // let probabilities = lf.run_neural_net(&nnh);
+    // for (idx, (neuron_type, prob)) in probabilities.iter().enumerate() {
+    //     items.push(ListItem::new(format!("{:?}: {}", neuron_type, prob)));
+    // }
+
+    let list = List::new(items).block(
+        Block::default()
+            .title(format!("LifeForm {}", lf.id))
+            .borders(Borders::ALL),
+    );
+
+    f.render_widget(list, area);
+}
 
 // fn update_info_screen(lf: &LifeForm, nnh: &NeuralNetHelper, screen: &mut Screen) {
-//     // Clear the screen part that we're using
-//     screen.clear();
-
-//     let x = 0 as i32;
-//     let y = 0 as i32;
-//     screen.print(x, y, &format!("LifeForm {} at {:?}", lf.id, lf.location));
-//     let y = y + 1;
-//     screen.print(x, y, "------- INPUTS --------");
-//     let y = y + 1;
-//     for (idx, (neuron_type, neuron)) in lf.neural_net.input_neurons.values().enumerate() {
-//         screen.print(
-//             x,
-//             y + idx as i32,
-//             &format!("{:?}: {:?}", neuron_type, neuron.value),
-//         );
-//     }
-//     let y = y + lf.neural_net.input_neurons.len() as i32;
-//     screen.print(x, y, "------- OUTPUTS -------");
-//     let y = y + 1;
-//     let probabilities = lf.run_neural_net(&nnh);
-//     for (idx, (neuron_type, prob)) in probabilities.iter().enumerate() {
-//         screen.print(x, y + idx as i32, &format!("{:?}: {}", neuron_type, prob));
-//     }
 //     let y = y + probabilities.len() as i32;
 //     screen.print(x, y, "-------");
 //     screen.draw();
