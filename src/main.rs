@@ -22,9 +22,9 @@ use evolution::*;
 
 fn main() {
     let size = 50;
-    let tick_rate = Duration::from_millis(10);
+    let tick_rate = Duration::from_millis(1);
 
-    let num_inner_neurons = 3;
+    let num_inner_neurons = 1;
 
     let nnh = NeuralNetHelper::new(num_inner_neurons);
 
@@ -32,10 +32,10 @@ fn main() {
         size,
         neural_net_helper: &nnh,
         num_initial_lifeforms: 20,
-        genome_size: 25,
+        genome_size: 5,
         mutation_rate: 0.001,
-        food_density: 300,
-        water_density: 30,
+        food_density: 30,
+        water_density: 3,
         num_inner_neurons,
         minimum_number_lifeforms: 15,
         // TODO Add num dangers
@@ -277,9 +277,16 @@ where
     for (event_type, description) in &world.events {
         let color = match event_type {
             EventType::Death => Color::Blue,
+            EventType::Creation => Color::Cyan,
         };
 
-        lis.insert(0, ListItem::new(Span::from(Span::styled(description, Style::default().fg(color)))));
+        lis.insert(
+            0,
+            ListItem::new(Span::from(Span::styled(
+                description,
+                Style::default().fg(color),
+            ))),
+        );
     }
 
     let list = List::new(lis).block(Block::default().title("Events").borders(Borders::ALL));

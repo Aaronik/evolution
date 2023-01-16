@@ -20,6 +20,7 @@ impl Evolver {
     }
 
     /// Takes a genome, makes a clone of it with a slight mutation, returns that
+    /// TODO Don't have this take and return a genome, have it modify it in place
     pub fn mutate(genome: &Genome, nnh: &NeuralNetHelper) -> Genome {
         let mut genome = genome.clone();
 

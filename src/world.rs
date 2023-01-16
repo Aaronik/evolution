@@ -17,7 +17,6 @@ pub struct WorldProps<'a> {
     /// After how many frames does a new water appear
     pub water_density: usize,
     pub neural_net_helper: &'a NeuralNetHelper,
-
 }
 
 #[derive(Debug)]
@@ -34,7 +33,8 @@ pub struct World<'a> {
 
 #[derive(Debug)]
 pub enum EventType {
-    Death
+    Death,
+    Creation,
 }
 
 impl<'a> World<'a> {
@@ -55,7 +55,7 @@ impl<'a> World<'a> {
         let food = HashSet::new();
         let water = HashSet::new();
         let danger = HashSet::from([(props.size / 2, props.size)]); // TODO make random, take variable amount
-        // TODO Add a health booster
+                                                                    // TODO Add a health booster
 
         Self {
             props,
@@ -100,8 +100,8 @@ impl<'a> World<'a> {
 
         // do effects of environment on lifeforms
         for mut lf in lfs {
-            lf.hunger += 0.00000001;
-            lf.thirst += 0.0000001;
+            lf.hunger += 0.000001;
+            lf.thirst += 0.00001;
             lf.lifespan += 1;
 
             // If the lifeform is on a resource, remove it
@@ -129,7 +129,8 @@ impl<'a> World<'a> {
             if lf.health <= 0.0 {
                 // TODO When a really healthy one dies, it'd be nice if it reproduced
                 self.lifeforms.remove(&lf.id);
-                self.events.push((EventType::Death, format!("Lifeform {} has died!", lf.id)));
+                self.events
+                    .push((EventType::Death, format!("Lifeform {} has died!", lf.id)));
                 continue;
             }
 
@@ -161,30 +162,30 @@ impl<'a> World<'a> {
                     self.props.genome_size,
                     &self.props.neural_net_helper,
                 );
+                self.events.push((
+                    EventType::Creation,
+                    format!(
+                        "New lifeform {} has been created with a random genome due to insufficient population",
+                        &lf.id
+                    ),
+                ));
                 self.lifeforms.insert(lf.id, lf);
             }
 
             return;
         }
 
-        // Get the most fit individual for later cloning
-        let most_fit_lf = self.most_fit_lifeform();
-        let mut to_add: Vec<LifeForm> = vec![];
-
         // Make a few clones
-        for offset in 0..3 {
-            let genome: Genome;
-
-            if Evolver::should_mutate(1.0) {
-                genome = Evolver::mutate(&most_fit_lf.genome, &self.props.neural_net_helper);
-            } else {
-                genome = most_fit_lf.genome.clone();
-            }
+        for _ in 0..3 {
+            let most_fit_lf = self.most_fit_lifeform();
+            let mut genome = most_fit_lf.genome.clone();
+            let location = most_fit_lf.location.clone();
+            genome = Evolver::mutate(&mut genome, &self.props.neural_net_helper);
 
             let lf = LifeForm {
                 id: self.available_lifeform_id(),
                 health: 1.0,
-                location: (most_fit_lf.location.0 + offset, most_fit_lf.location.1),
+                location,
                 genome,
                 hunger: 0.0,
                 thirst: 0.0,
@@ -192,10 +193,13 @@ impl<'a> World<'a> {
                 neural_net: self.props.neural_net_helper.spawn(),
             };
 
-            to_add.push(lf);
-        }
-
-        for lf in to_add {
+            self.events.push((
+                EventType::Creation,
+                format!(
+                    "New lifeform {} has been created based on lifeform {} due to insufficient population",
+                    &lf.id, most_fit_lf.id
+                ),
+            ));
             self.lifeforms.insert(lf.id, lf);
         }
     }
@@ -225,7 +229,6 @@ impl<'a> World<'a> {
         let size = self.props.size;
 
         for (neuron_type, value) in probabilities {
-
             // This reads as continue on with the probability of value so long as value is above 0.
             if value <= 0.0 || !thread_rng().gen_bool(value as f64) {
                 return;
@@ -337,7 +340,6 @@ impl<'a> World<'a> {
 
         None
     }
-
 }
 
 /// Generates a vec that has a very specific set of information relative to a lifeform, to be used
