@@ -1,7 +1,7 @@
 use std::{
     collections::HashMap,
     io, thread,
-    time::{Duration, Instant},
+    time::{Duration, Instant}, cell::Cell,
 };
 
 use crossterm::{
@@ -14,7 +14,7 @@ use tui::{
     layout::{Constraint, Direction, Layout, Rect},
     style::{Color, Style},
     text::Span,
-    widgets::{canvas::Canvas, Block, Borders, Paragraph, Widget, ListItem, List},
+    widgets::{canvas::Canvas, Block, Borders, List, ListItem, Paragraph, Widget, Table, Row},
     Frame, Terminal,
 };
 
@@ -237,38 +237,35 @@ fn draw_stats<B>(f: &mut Frame<B>, world: &World, area: Rect)
 where
     B: Backend,
 {
-    let stats: Vec<(usize, usize, f32, f32, f32, (usize, usize))> = world
-        .lifeforms
-        .values()
-        .map(|lf| {
-            (
-                lf.id,
-                lf.lifespan,
-                lf.health,
-                lf.hunger,
-                lf.thirst,
-                lf.location,
-            )
-        })
-        .collect();
+    let header = Row::new(["id", "lifespan", "health", "hunger", "thirst", "location"])
+        .height(1)
+        .bottom_margin(1);
 
-    let mut lis: Vec<ListItem> = vec![ListItem::new(Span::from("Stats: id, lifespan, health, hunger, thirst, location"))];
+    let rows = world.lifeforms.values().map(|lf| {
+        let cells = vec![
+            lf.id.to_string(),
+            lf.lifespan.to_string(),
+            lf.health.to_string(),
+            lf.hunger.to_string(),
+            lf.thirst.to_string(),
+            format!("({}, {})", lf.location.0, lf.location.1),
+        ];
+        Row::new(cells)
+    });
 
-    for lf in world.lifeforms.values() {
-        let stat = ( lf.id, lf.lifespan, lf.health, lf.hunger, lf.thirst, lf.location);
-        lis.push(ListItem::new(Span::from(format!("{:.10?}", stat))));
-    }
+    let table = Table::new(rows)
+        .header(header)
+        .block(Block::default().borders(Borders::ALL).title("Stats"))
+        .widths(&[
+            Constraint::Length(3),
+            Constraint::Percentage(10),
+            Constraint::Percentage(15),
+            Constraint::Percentage(15),
+            Constraint::Percentage(15),
+            Constraint::Percentage(15),
+        ]);
 
-    let list = List::new(lis)
-        .block(Block::default().title("Stats").borders(Borders::ALL));
-
-    // // Stats
-    // screen.print(1, 0,);
-    // for (idx, stat) in stats.iter().enumerate() {
-    //     screen.print(1, idx as i32, &format!("{:.10?}", stat));
-    // }
-
-    f.render_widget(list, area);
+    f.render_widget(table, area);
 }
 
 fn draw_events<B>(f: &mut Frame<B>, area: Rect)
@@ -277,6 +274,25 @@ where
 {
     let block = Block::default().title("Events").borders(Borders::ALL);
     f.render_widget(block, area);
+
+    // let mut lis: Vec<ListItem> = vec![ListItem::new(Span::from(
+    //     "Stats: id, lifespan, health, hunger, thirst, location",
+    // ))];
+
+    // for lf in world.lifeforms.values() {
+    //     let stat = (
+    //         lf.id,
+    //         lf.lifespan,
+    //         lf.health,
+    //         lf.hunger,
+    //         lf.thirst,
+    //         lf.location,
+    //     );
+    //     lis.push(ListItem::new(Span::from(format!("{:.10?}", stat))));
+    // }
+
+    // let list = List::new(lis).block(Block::default().title("Stats").borders(Borders::ALL));
+
 }
 
 //         // Mouse has been moved or clicked
