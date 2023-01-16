@@ -22,7 +22,7 @@ use evolution::*;
 
 fn main() {
     let size = 50;
-    let tick_rate = Duration::from_millis(1);
+    let tick_rate = Duration::from_millis(10);
 
     let num_inner_neurons = 3;
 
@@ -52,6 +52,8 @@ fn main() {
     let mut iteration = 0;
     let mut last_tick = Instant::now();
 
+    let mut paused = false;
+
     loop {
         terminal.draw(|f| ui(f, size, &world, iteration)).unwrap();
 
@@ -61,13 +63,19 @@ fn main() {
 
         if crossterm::event::poll(timeout).unwrap() {
             if let Event::Key(key) = event::read().unwrap() {
-                if let KeyCode::Char('q') = key.code {
-                    break;
-                }
+                match key.code {
+                    KeyCode::Char('q') => break,
+                    KeyCode::Char('p') => paused = !paused,
+                    _ => ()
+                };
             }
         }
 
         if last_tick.elapsed() >= tick_rate {
+            if paused {
+                continue;
+            }
+
             world.step();
             last_tick = Instant::now();
         }
@@ -118,30 +126,6 @@ fn draw_world<B>(f: &mut Frame<B>, size: usize, world: &World, area: Rect)
 where
     B: Backend,
 {
-    //     for water in &world.water {
-    //         screen.set_pxl(
-    //             water.0 as i32,
-    //             water.1 as i32,
-    //             pixel::pxl_fg('W', Color::Blue),
-    //         );
-    //     }
-
-    //     for food in &world.food {
-    //         screen.set_pxl(
-    //             food.0 as i32,
-    //             food.1 as i32,
-    //             pixel::pxl_fg('F', Color::Green),
-    //         );
-    //     }
-
-    //     for danger in &world.danger {
-    //         screen.set_pxl(
-    //             danger.0 as i32,
-    //             danger.1 as i32,
-    //             pixel::pxl_fg('☠', Color::Red),
-    //         );
-    //     }
-
     let world_canvas = Canvas::default()
         .block(Block::default().title("World").borders(Borders::ALL))
         .x_bounds([0.0, size as f64])
@@ -258,28 +242,6 @@ where
     let block = Block::default().title("Events").borders(Borders::ALL);
     f.render_widget(block, area);
 }
-
-// let mut engine = console_engine::ConsoleEngine::init(width, height, frame_rate).unwrap();
-
-// // The screen where all the lifeforms appear
-// let mut main_screen = Screen::new(size as u32, size as u32);
-// let mut controls_screen = Screen::new((size * 3) as u32, 2);
-// let mut stats_screen = Screen::new((size * 2) as u32, engine.get_height());
-// let mut info_screen = Screen::new((size * 2) as u32, engine.get_height());
-
-// // Controls
-// controls_screen.print(
-//     0,
-//     0,
-//     format!(
-//         "controls: q = quit | p = pause | f = change frame rate | e = evolve without UI | frame {}",
-//         engine.frame_count
-//     )
-//     .as_str(),
-// );
-// controls_screen.draw();
-
-// let mut paused = false;
 
 // // TODO ATTOW there's an error in console_engine that disallows any value over 1000 for
 // // target_fps. If this becomes a real issue we can switch back to the normal way instead
