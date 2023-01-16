@@ -16,6 +16,9 @@ pub struct WorldProps<'a> {
 
     /// After how many frames does a new water appear
     pub water_density: usize,
+
+    /// After how many frames does a new health powerup appear
+    pub heals_density: usize,
     pub neural_net_helper: &'a NeuralNetHelper,
 }
 
@@ -26,6 +29,7 @@ pub struct World<'a> {
     pub food: HashSet<(usize, usize)>,
     pub water: HashSet<(usize, usize)>,
     pub danger: HashSet<(usize, usize)>,
+    pub heals: HashSet<(usize, usize)>,
     oscillator: f32,
     tics: usize,
     pub events: Vec<(EventType, String)>,
@@ -54,6 +58,7 @@ impl<'a> World<'a> {
         // Food generation
         let food = HashSet::new();
         let water = HashSet::new();
+        let heals = HashSet::new();
         let danger = HashSet::from([(props.size / 2, props.size)]); // TODO make random, take variable amount
                                                                     // TODO Add a health booster
 
@@ -62,6 +67,7 @@ impl<'a> World<'a> {
             food,
             water,
             danger,
+            heals,
             lifeforms,
             oscillator: 0.0,
             tics: 0,
@@ -73,7 +79,7 @@ impl<'a> World<'a> {
         self.tics += 1;
         self.oscillator = (self.tics as f32 / 10.0).sin();
 
-        // Update food and water
+        // Update resources
         if self.tics % self.props.food_density == 0 {
             self.food.insert((
                 thread_rng().gen_range(0..self.props.size),
@@ -83,6 +89,13 @@ impl<'a> World<'a> {
 
         if self.tics % self.props.water_density == 0 {
             self.water.insert((
+                thread_rng().gen_range(0..self.props.size),
+                thread_rng().gen_range(0..self.props.size),
+            ));
+        }
+
+        if self.tics % self.props.heals_density == 0 {
+            self.heals.insert((
                 thread_rng().gen_range(0..self.props.size),
                 thread_rng().gen_range(0..self.props.size),
             ));
@@ -111,6 +124,10 @@ impl<'a> World<'a> {
 
             if self.water.remove(&lf.location) {
                 lf.thirst = 0.0;
+            }
+
+            if self.heals.remove(&lf.location) {
+                lf.health = 1.0;
             }
 
             lf.health -= lf.hunger;
@@ -264,6 +281,10 @@ impl<'a> World<'a> {
                 &lifeform.location,
                 &self.water.iter().map(|loc| *loc).collect(),
             );
+            let closest_heal = &closest_to(
+                &lifeform.location,
+                &self.heals.iter().map(|loc| *loc).collect(),
+            );
             let closest_dang = &closest_to(
                 &lifeform.location,
                 &self.danger.iter().map(|loc| *loc).collect(),
@@ -279,6 +300,8 @@ impl<'a> World<'a> {
                     InputNeuronType::DistanceToFood => dist_rel(size, loc, closest_food),
                     InputNeuronType::DirectionToWater => direc(loc, closest_wat),
                     InputNeuronType::DistanceToWater => dist_rel(size, loc, closest_wat),
+                    InputNeuronType::DirectionToHeal => direc(loc, closest_heal),
+                    InputNeuronType::DistanceToHeal => dist_rel(size, loc, closest_heal),
                     InputNeuronType::DirectionToDanger => direc(loc, closest_dang),
                     InputNeuronType::DistanceToDanger => dist_rel(size, loc, closest_dang),
                     InputNeuronType::DirectionToHealthiestLF => direc(loc, &hlthst_lf_loc),

@@ -36,6 +36,7 @@ fn main() {
         mutation_rate: 0.001,
         food_density: 30,
         water_density: 3,
+        heals_density: 30,
         num_inner_neurons,
         minimum_number_lifeforms: 15,
         // TODO Add num dangers
@@ -196,11 +197,18 @@ where
                 );
             }
 
+            for heal in &world.heals {
+                ctx.print(
+                    heal.0 as f64,
+                    heal.1 as f64,
+                    Span::styled("♥", Style::default().fg(Color::Red)),
+                );
+            }
             for danger in &world.danger {
                 ctx.print(
                     danger.0 as f64,
                     danger.1 as f64,
-                    Span::styled("☠", Style::default().fg(Color::Red)),
+                    Span::styled("☠", Style::default().fg(Color::White).bg(Color::Red)),
                 );
             }
         });
