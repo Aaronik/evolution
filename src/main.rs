@@ -21,9 +21,12 @@ use tui::{
 use evolution::*;
 
 fn main() {
+    // Size of the world
     let size = 50;
-    let original_tick_rate = 1;
-    let mut tick_rate = Duration::from_millis(original_tick_rate);
+    // When we pause we greatly increase the tick rate to keep the loop from
+    // cooking the CPUs. This is where we store the value to go back to.
+    // Note we mutate this to adjust tick rate.
+    let mut saved_tick_rate = 1;
 
     let num_inner_neurons = 1;
 
@@ -59,8 +62,10 @@ fn main() {
 
     loop {
         terminal
-            .draw(|f| ui(f, size, &world, iteration, selected_lf_index))
+            .draw(|f| ui(f, size, &world, iteration, selected_lf_index, saved_tick_rate))
             .unwrap();
+
+        let mut tick_rate = Duration::from_millis(saved_tick_rate);
 
         let timeout = tick_rate
             .checked_sub(last_tick.elapsed())
@@ -73,17 +78,19 @@ fn main() {
                     KeyCode::Char('p') => {
                         if paused {
                             paused = false;
-                            tick_rate = Duration::from_millis(original_tick_rate);
+                            tick_rate = Duration::from_millis(saved_tick_rate);
                         } else {
                             paused = true;
                             tick_rate = Duration::from_secs(u64::MAX);
                         }
-                    },
+                    }
                     KeyCode::Up => selected_lf_index = i32::max(0, selected_lf_index - 1),
                     KeyCode::Down => {
                         selected_lf_index =
                             i32::min(world.lifeforms.len() as i32 - 1, selected_lf_index + 1)
                     }
+                    KeyCode::Left => saved_tick_rate = (saved_tick_rate / 3) + 1,
+                    KeyCode::Right => saved_tick_rate = saved_tick_rate * 2,
 
                     // TODO here could pause this loop, call a fn that has another
                     // loop that just steps. In that fn though need to figure out
@@ -119,8 +126,14 @@ fn main() {
     terminal.show_cursor().unwrap();
 }
 
-fn ui<B>(f: &mut Frame<B>, size: usize, world: &World, iteration: usize, selected_lf_index: i32)
-where
+fn ui<B>(
+    f: &mut Frame<B>,
+    size: usize,
+    world: &World,
+    iteration: usize,
+    selected_lf_index: i32,
+    saved_tick_rate: u64,
+) where
     B: Backend,
 {
     let chunks = Layout::default()
@@ -130,7 +143,7 @@ where
         .split(f.size());
 
     draw_main(f, size, selected_lf_index, world, chunks[0]);
-    draw_controls(f, chunks[1], iteration);
+    draw_controls(f, chunks[1], iteration, saved_tick_rate);
 }
 
 fn draw_main<B>(f: &mut Frame<B>, size: usize, selected_lf_index: i32, world: &World, area: Rect)
@@ -147,12 +160,12 @@ where
     draw_right(f, selected_lf_index, world, chunks[1]);
 }
 
-fn draw_controls<B>(f: &mut Frame<B>, area: Rect, iteration: usize)
+fn draw_controls<B>(f: &mut Frame<B>, area: Rect, iteration: usize, saved_tick_rate: u64)
 where
     B: Backend,
 {
     let block = Block::default().title("Controls").borders(Borders::ALL);
-    let text = format!( "controls: q = quit | p = pause | Up/Down = Select LifeForm | f = change frame rate | e = evolve without UI | iteration {}", iteration);
+    let text = format!( "controls: q = quit | p = pause | Up/Down = Select LifeForm | Left/Right = change tick rate | e = evolve without UI | tick rate: {}ms | iteration: {}", saved_tick_rate, iteration);
     let paragraph = Paragraph::new(text).block(block);
 
     f.render_widget(paragraph, area);
@@ -253,7 +266,13 @@ where
                 ctx.print(
                     danger.0 as f64,
                     danger.1 as f64,
-                    Span::styled("☠ ", Style::default().fg(Color::White).bg(Color::Red).add_modifier(Modifier::BOLD)),
+                    Span::styled(
+                        "☠ ",
+                        Style::default()
+                            .fg(Color::White)
+                            .bg(Color::Red)
+                            .add_modifier(Modifier::BOLD),
+                    ),
                 );
             }
         });
@@ -298,7 +317,6 @@ where
         } else {
             return Row::new(cells).style(Style::default());
         }
-
     });
 
     let table = Table::new(rows)
