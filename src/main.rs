@@ -1,7 +1,7 @@
 use std::{
     collections::HashMap,
-    io, thread,
-    time::{Duration, Instant}, cell::Cell,
+    io,
+    time::{Duration, Instant},
 };
 
 use crossterm::{
@@ -14,7 +14,7 @@ use tui::{
     layout::{Constraint, Direction, Layout, Rect},
     style::{Color, Style},
     text::Span,
-    widgets::{canvas::Canvas, Block, Borders, List, ListItem, Paragraph, Widget, Table, Row},
+    widgets::{canvas::Canvas, Block, Borders, List, ListItem, Paragraph, Row, Table},
     Frame, Terminal,
 };
 
@@ -230,7 +230,7 @@ where
         .split(area);
 
     draw_stats(f, world, chunks[0]);
-    draw_events(f, chunks[1]);
+    draw_events(f, world, chunks[1]);
 }
 
 fn draw_stats<B>(f: &mut Frame<B>, world: &World, area: Rect)
@@ -268,31 +268,23 @@ where
     f.render_widget(table, area);
 }
 
-fn draw_events<B>(f: &mut Frame<B>, area: Rect)
+fn draw_events<B>(f: &mut Frame<B>, world: &World, area: Rect)
 where
     B: Backend,
 {
-    let block = Block::default().title("Events").borders(Borders::ALL);
-    f.render_widget(block, area);
+    let mut lis: Vec<ListItem> = vec![];
 
-    // let mut lis: Vec<ListItem> = vec![ListItem::new(Span::from(
-    //     "Stats: id, lifespan, health, hunger, thirst, location",
-    // ))];
+    for (event_type, description) in &world.events {
+        let color = match event_type {
+            EventType::Death => Color::Blue,
+        };
 
-    // for lf in world.lifeforms.values() {
-    //     let stat = (
-    //         lf.id,
-    //         lf.lifespan,
-    //         lf.health,
-    //         lf.hunger,
-    //         lf.thirst,
-    //         lf.location,
-    //     );
-    //     lis.push(ListItem::new(Span::from(format!("{:.10?}", stat))));
-    // }
+        lis.insert(0, ListItem::new(Span::from(Span::styled(description, Style::default().fg(color)))));
+    }
 
-    // let list = List::new(lis).block(Block::default().title("Stats").borders(Borders::ALL));
+    let list = List::new(lis).block(Block::default().title("Events").borders(Borders::ALL));
 
+    f.render_widget(list, area);
 }
 
 //         // Mouse has been moved or clicked

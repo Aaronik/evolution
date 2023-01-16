@@ -29,7 +29,12 @@ pub struct World<'a> {
     pub danger: HashSet<(usize, usize)>,
     oscillator: f32,
     tics: usize,
-    pub events: Vec<String>,
+    pub events: Vec<(EventType, String)>,
+}
+
+#[derive(Debug)]
+pub enum EventType {
+    Death
 }
 
 impl<'a> World<'a> {
@@ -122,8 +127,9 @@ impl<'a> World<'a> {
             lf.health -= 0.01 / dist_to_danger.powi(2);
 
             if lf.health <= 0.0 {
+                // TODO When a really healthy one dies, it'd be nice if it reproduced
                 self.lifeforms.remove(&lf.id);
-                self.events.push(format!("Lifeform {} has died!", lf.id));
+                self.events.push((EventType::Death, format!("Lifeform {} has died!", lf.id)));
                 continue;
             }
 
