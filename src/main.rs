@@ -23,10 +23,6 @@ use evolution::*;
 fn main() {
     // Size of the world
     let size = 50;
-    // When we pause we greatly increase the tick rate to keep the loop from
-    // cooking the CPUs. This is where we store the value to go back to.
-    // Note we mutate this to adjust tick rate.
-    let mut saved_tick_rate = 1;
 
     let num_inner_neurons = 1;
 
@@ -57,13 +53,22 @@ fn main() {
     let mut iteration = 0;
     let mut last_tick = Instant::now();
 
+    // When we pause we greatly increase the tick rate to keep the loop from
+    // cooking the CPUs. This is where we store the value to go back to.
+    // Note we mutate this to adjust tick rate.
+    let mut saved_tick_rate = 1;
+
+    // Will be adjusted within the loop as well
     let mut paused = false;
+
+    // Which lifeform is currently selected within the UI
     let mut selected_lf_index: i32 = 0;
 
     loop {
         terminal
             .draw(|f| ui(f, size, &world, iteration, selected_lf_index, saved_tick_rate))
             .unwrap();
+
 
         let mut tick_rate = Duration::from_millis(saved_tick_rate);
 
@@ -180,6 +185,30 @@ where
         .x_bounds([0.0, size as f64])
         .y_bounds([0.0, size as f64])
         .paint(|ctx| {
+            for water in &world.water {
+                ctx.print(
+                    water.0 as f64,
+                    water.1 as f64,
+                    Span::styled("W", Style::default().fg(Color::Blue)),
+                );
+            }
+
+            for food in &world.food {
+                ctx.print(
+                    food.0 as f64,
+                    food.1 as f64,
+                    Span::styled("F", Style::default().fg(Color::Green)),
+                );
+            }
+
+            for heal in &world.heals {
+                ctx.print(
+                    heal.0 as f64,
+                    heal.1 as f64,
+                    Span::styled("♥", Style::default().fg(Color::Red)),
+                );
+            }
+
             let mut num_at_location: HashMap<(usize, usize), usize> = HashMap::new();
 
             for (idx, lf) in world.lifeforms.values().enumerate() {
@@ -239,29 +268,6 @@ where
                 }
             }
 
-            for water in &world.water {
-                ctx.print(
-                    water.0 as f64,
-                    water.1 as f64,
-                    Span::styled("W", Style::default().fg(Color::Blue)),
-                );
-            }
-
-            for food in &world.food {
-                ctx.print(
-                    food.0 as f64,
-                    food.1 as f64,
-                    Span::styled("F", Style::default().fg(Color::Green)),
-                );
-            }
-
-            for heal in &world.heals {
-                ctx.print(
-                    heal.0 as f64,
-                    heal.1 as f64,
-                    Span::styled("♥", Style::default().fg(Color::Red)),
-                );
-            }
             for danger in &world.danger {
                 ctx.print(
                     danger.0 as f64,
