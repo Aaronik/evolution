@@ -8,6 +8,7 @@ edition = "2021"
 [dependencies]
 crossterm = "0.25.0"
 rand = "0.8.5"
+rayon = "1.6.1"
 strum = "0.24.1"
 strum_macros = "0.24.3"
 tui = "0.19.0"

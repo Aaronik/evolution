@@ -1,5 +1,6 @@
 use crate::*;
 use rand::{thread_rng, Rng};
+use rayon::prelude::*;
 use std::collections::{HashMap, HashSet};
 
 #[derive(Debug)]
@@ -60,7 +61,7 @@ impl<'a> World<'a> {
         let water = HashSet::new();
         let heals = HashSet::new();
         let danger = HashSet::from([(0, 0)]); // TODO make random, take variable amount
-                                                                    // TODO Add a health booster
+                                              // TODO Add a health booster
 
         Self {
             props,
@@ -111,8 +112,12 @@ impl<'a> World<'a> {
             lfs.push(lf.clone());
         }
 
+        // To avoid interior mutability, this keeps track of which lifeforms
+        // are marked as deceased and will be removed after the mutable loop.
+        let mut has_died: Vec<usize> = vec![];
+
         // do effects of environment on lifeforms
-        for mut lf in lfs {
+        for mut lf in self.lifeforms.values_mut() {
             lf.hunger += 0.000001;
             lf.thirst += 0.00001;
             lf.lifespan += 1;
@@ -144,20 +149,32 @@ impl<'a> World<'a> {
             lf.health -= 0.01 / dist_to_danger.powi(2);
 
             if lf.health <= 0.0 {
-                // TODO When a really healthy one dies, it'd be nice if it reproduced
-                self.lifeforms.remove(&lf.id);
-                self.events
-                    .push((EventType::Death, format!("=> Lifeform {} has died!", lf.id)));
-                continue;
+                has_died.push(lf.id);
             }
+        }
 
-            // Enact the effects of output neurons
-            let output_neuron_probabilities = lf.run_neural_net(&self.props.neural_net_helper);
-            // println!("output_neuron_probabilities: {:?}", output_neuron_probabilities); // TODO
-            self.process_output_probabilities(&mut lf, output_neuron_probabilities);
+        for lf_id in has_died {
+            // TODO When a really healthy one dies, it'd be nice if it reproduced
+            self.lifeforms.remove(&lf_id);
+            self.events
+                .push((EventType::Death, format!("=> Lifeform {} has died!", lf_id)));
+        }
 
-            // Overwrite the lifeform in our hashmap
-            self.lifeforms.insert(lf.id, lf);
+        // Run the neural net calculations. Uses rayon's par_iter() to parallelise the calculations
+        // across threads.
+        let all_output_neuron_probabilities: Vec<(usize, Vec<(OutputNeuronType, f32)>)> = self
+            .lifeforms
+            .par_iter()
+            .map(|(lf_id, lf)| {
+                (
+                    lf_id.clone(),
+                    lf.run_neural_net(&self.props.neural_net_helper),
+                )
+            })
+            .collect();
+
+        for (lf_id, output_neuron_probabilities) in all_output_neuron_probabilities {
+            self.process_output_probabilities(&lf_id, output_neuron_probabilities);
         }
 
         self.ensure_lifeform_count();
@@ -219,6 +236,19 @@ impl<'a> World<'a> {
             ));
             self.lifeforms.insert(lf.id, lf);
         }
+
+        let lf = LifeForm::new(
+            self.available_lifeform_id(),
+            self.props.genome_size,
+            &self.props.neural_net_helper,
+        );
+        self.events.push((
+            EventType::Creation,
+            format!(
+                "=> New lifeform {} has been created with a random genome due to insufficient population",
+                &lf.id
+            ),
+        ));
     }
 
     fn most_fit_lifeform(&self) -> &LifeForm {
@@ -238,10 +268,11 @@ impl<'a> World<'a> {
     }
 
     fn process_output_probabilities(
-        &self,
-        lf: &mut LifeForm,
+        &mut self,
+        lf_id: &usize,
         probabilities: Vec<(OutputNeuronType, f32)>,
     ) {
+        let lf = self.lifeforms.get_mut(lf_id).unwrap();
         let mut loc = &mut lf.location;
         let size = self.props.size;
 
