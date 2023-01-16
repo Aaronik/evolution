@@ -1,4 +1,8 @@
-use std::{collections::HashMap, io, thread, time::{Duration, Instant}};
+use std::{
+    collections::HashMap,
+    io, thread,
+    time::{Duration, Instant},
+};
 
 use crossterm::{
     event::{self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode},
@@ -8,20 +12,17 @@ use crossterm::{
 use tui::{
     backend::{Backend, CrosstermBackend},
     layout::{Constraint, Direction, Layout, Rect},
-    widgets::{Block, Borders, Paragraph, Widget},
+    style::{Color, Style},
+    text::Span,
+    widgets::{canvas::Canvas, Block, Borders, Paragraph, Widget},
     Frame, Terminal,
 };
 
 use evolution::*;
 
-// TODO
-// * Make output neuron effects
-// * Add physics for when lifeforms get down to so many, they auto reproduce
-// * For future event handling: https://qiita.com/wangya_eecs/items/b9e1a501cb0c0ab0de1c
-
 fn main() {
     let size = 50;
-    let tick_rate = Duration::from_millis(100);
+    let tick_rate = Duration::from_millis(1);
 
     let num_inner_neurons = 3;
 
@@ -52,7 +53,7 @@ fn main() {
     let mut last_tick = Instant::now();
 
     loop {
-        terminal.draw(|f| ui(f, size, iteration)).unwrap();
+        terminal.draw(|f| ui(f, size, &world, iteration)).unwrap();
 
         let timeout = tick_rate
             .checked_sub(last_tick.elapsed())
@@ -85,7 +86,7 @@ fn main() {
     terminal.show_cursor().unwrap();
 }
 
-fn ui<B>(f: &mut Frame<B>, size: usize, iteration: usize)
+fn ui<B>(f: &mut Frame<B>, size: usize, world: &World, iteration: usize)
 where
     B: Backend,
 {
@@ -95,11 +96,11 @@ where
         .constraints([Constraint::Length(size as u16), Constraint::Min(20)].as_ref())
         .split(f.size());
 
-    draw_main(f, size, chunks[0]);
+    draw_main(f, size, world, chunks[0]);
     draw_controls(f, chunks[1], iteration);
 }
 
-fn draw_main<B>(f: &mut Frame<B>, size: usize, area: Rect)
+fn draw_main<B>(f: &mut Frame<B>, size: usize, world: &World, area: Rect)
 where
     B: Backend,
 {
@@ -109,16 +110,110 @@ where
         .constraints([Constraint::Length(size as u16), Constraint::Min(10)].as_ref())
         .split(area);
 
-    draw_world(f, chunks[0]);
+    draw_world(f, size, world, chunks[0]);
     draw_right(f, chunks[1]);
 }
 
-fn draw_world<B>(f: &mut Frame<B>, area: Rect)
+fn draw_world<B>(f: &mut Frame<B>, size: usize, world: &World, area: Rect)
 where
     B: Backend,
 {
-    let block = Block::default().title("World").borders(Borders::ALL);
-    f.render_widget(block, area);
+    //     for water in &world.water {
+    //         screen.set_pxl(
+    //             water.0 as i32,
+    //             water.1 as i32,
+    //             pixel::pxl_fg('W', Color::Blue),
+    //         );
+    //     }
+
+    //     for food in &world.food {
+    //         screen.set_pxl(
+    //             food.0 as i32,
+    //             food.1 as i32,
+    //             pixel::pxl_fg('F', Color::Green),
+    //         );
+    //     }
+
+    //     for danger in &world.danger {
+    //         screen.set_pxl(
+    //             danger.0 as i32,
+    //             danger.1 as i32,
+    //             pixel::pxl_fg('☠', Color::Red),
+    //         );
+    //     }
+
+    let world_canvas = Canvas::default()
+        .block(Block::default().title("World").borders(Borders::ALL))
+        .x_bounds([0.0, size as f64])
+        .y_bounds([0.0, size as f64])
+        .paint(|ctx| {
+            let mut num_at_location: HashMap<(usize, usize), usize> = HashMap::new();
+
+            for lf in world.lifeforms.values() {
+                *num_at_location.entry(lf.location).or_insert(0) += 1;
+                let num = num_at_location[&lf.location];
+
+                let char = match num {
+                    1 if lf.health >= 0.5 => "☺",
+                    1 if lf.health < 0.5 => "☹",
+                    2 => "2",
+                    3 => "3",
+                    4 => "4",
+                    5 => "5",
+                    6 => "6",
+                    7 => "7",
+                    8 => "8",
+                    9 => "9",
+                    _ => "!",
+                };
+
+                let color = match lf.health {
+                    _ if lf.health >= 0.9 => Color::LightGreen,
+                    _ if lf.health >= 0.8 => Color::Green,
+                    _ if lf.health >= 0.7 => Color::LightBlue,
+                    _ if lf.health >= 0.6 => Color::Blue,
+                    _ if lf.health >= 0.5 => Color::Magenta,
+                    _ if lf.health >= 0.4 => Color::LightMagenta,
+                    _ if lf.health >= 0.3 => Color::Yellow,
+                    _ if lf.health >= 0.2 => Color::LightYellow,
+                    _ if lf.health >= 0.1 => Color::LightRed,
+                    _ if lf.health < 0.1 => Color::Red,
+                    _ => Color::White,
+                };
+
+                ctx.print(
+                    lf.location.0 as f64,
+                    lf.location.1 as f64,
+                    Span::styled(char, Style::default().fg(color)),
+                );
+            }
+
+            for water in &world.water {
+                ctx.print(
+                    water.0 as f64,
+                    water.1 as f64,
+                    Span::styled("W", Style::default().fg(Color::Blue)),
+                );
+            }
+
+            for food in &world.food {
+                ctx.print(
+                    food.0 as f64,
+                    food.1 as f64,
+                    Span::styled("F", Style::default().fg(Color::Green)),
+                );
+            }
+
+            for danger in &world.danger {
+                ctx.print(
+                    danger.0 as f64,
+                    danger.1 as f64,
+                    Span::styled("☠", Style::default().fg(Color::Red)),
+                );
+            }
+        });
+
+    f.render_widget(world_canvas, area);
 }
 
 fn draw_controls<B>(f: &mut Frame<B>, area: Rect, iteration: usize)
@@ -328,30 +423,6 @@ where
 //             lf.location.0 as i32,
 //             lf.location.1 as i32,
 //             pixel::pxl_fg(char, color),
-//         );
-//     }
-
-//     for water in &world.water {
-//         screen.set_pxl(
-//             water.0 as i32,
-//             water.1 as i32,
-//             pixel::pxl_fg('W', Color::Blue),
-//         );
-//     }
-
-//     for food in &world.food {
-//         screen.set_pxl(
-//             food.0 as i32,
-//             food.1 as i32,
-//             pixel::pxl_fg('F', Color::Green),
-//         );
-//     }
-
-//     for danger in &world.danger {
-//         screen.set_pxl(
-//             danger.0 as i32,
-//             danger.1 as i32,
-//             pixel::pxl_fg('☠', Color::Red),
 //         );
 //     }
 
