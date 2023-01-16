@@ -22,7 +22,8 @@ use evolution::*;
 
 fn main() {
     let size = 50;
-    let tick_rate = Duration::from_millis(1);
+    let original_tick_rate = 1;
+    let mut tick_rate = Duration::from_millis(original_tick_rate);
 
     let num_inner_neurons = 1;
 
@@ -69,7 +70,15 @@ fn main() {
             if let Event::Key(key) = event::read().unwrap() {
                 match key.code {
                     KeyCode::Char('q') => break,
-                    KeyCode::Char('p') => paused = !paused,
+                    KeyCode::Char('p') => {
+                        if paused {
+                            paused = false;
+                            tick_rate = Duration::from_millis(original_tick_rate);
+                        } else {
+                            paused = true;
+                            tick_rate = Duration::from_secs(u64::MAX);
+                        }
+                    },
                     KeyCode::Up => selected_lf_index = i32::max(0, selected_lf_index - 1),
                     KeyCode::Down => {
                         selected_lf_index =
@@ -423,14 +432,3 @@ where
 
     f.render_widget(list, area);
 }
-
-// fn update_info_screen(lf: &LifeForm, nnh: &NeuralNetHelper, screen: &mut Screen) {
-//     let y = y + probabilities.len() as i32;
-//     screen.print(x, y, "-------");
-//     screen.draw();
-// }
-
-// fn update_stats_screen(screen: &mut Screen, world: &World) {
-
-//     screen.draw();
-// }
