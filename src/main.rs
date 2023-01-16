@@ -1,4 +1,4 @@
-use std::{collections::HashMap, io, thread, time::Duration};
+use std::{collections::HashMap, io, thread, time::{Duration, Instant}};
 
 use crossterm::{
     event::{self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode},
@@ -20,8 +20,9 @@ use evolution::*;
 // * For future event handling: https://qiita.com/wangya_eecs/items/b9e1a501cb0c0ab0de1c
 
 fn main() {
-    let size = 40;
-    let frame_rate = 1000;
+    let size = 50;
+    let tick_rate = Duration::from_millis(100);
+
     let num_inner_neurons = 3;
 
     let nnh = NeuralNetHelper::new(num_inner_neurons);
@@ -41,38 +42,37 @@ fn main() {
 
     let mut world = World::new(world_props);
 
-    let width = (size * 3) as u16;
-    let height = (size + 2) as u16;
-
     enable_raw_mode().unwrap();
     let mut stdout = io::stdout();
     execute!(stdout, EnterAlternateScreen, EnableMouseCapture).unwrap();
     let backend = CrosstermBackend::new(stdout);
     let mut terminal = Terminal::new(backend).unwrap();
 
-    // Ok, I want:
-    // * a main screen (top left)
-    // * controls footer
-    // * live update stats (top right)
-    // * event log (bottom right)
-    terminal
-        .draw(|f| {
-            let chunks = Layout::default()
-                .direction(Direction::Vertical)
-                .margin(0)
-                .constraints([Constraint::Length(size as u16), Constraint::Min(20)].as_ref())
-                .split(f.size());
+    let mut iteration = 0;
+    let mut last_tick = Instant::now();
 
-            draw_main(f, size, chunks[0]);
-            draw_controls(f, chunks[1]);
-        })
-        .unwrap();
+    loop {
+        terminal.draw(|f| ui(f, size, iteration)).unwrap();
 
-    thread::sleep(Duration::from_millis(5000));
+        let timeout = tick_rate
+            .checked_sub(last_tick.elapsed())
+            .unwrap_or_else(|| Duration::from_secs(0));
 
-    // let mut st = String::new();
-    // std::io::stdin().read_line(&mut st).expect("issue reading input");
-    // println!("st: {}", st);
+        if crossterm::event::poll(timeout).unwrap() {
+            if let Event::Key(key) = event::read().unwrap() {
+                if let KeyCode::Char('q') = key.code {
+                    break;
+                }
+            }
+        }
+
+        if last_tick.elapsed() >= tick_rate {
+            world.step();
+            last_tick = Instant::now();
+        }
+
+        iteration += 1;
+    }
 
     // restore terminal
     disable_raw_mode().unwrap();
@@ -83,6 +83,20 @@ fn main() {
     )
     .unwrap();
     terminal.show_cursor().unwrap();
+}
+
+fn ui<B>(f: &mut Frame<B>, size: usize, iteration: usize)
+where
+    B: Backend,
+{
+    let chunks = Layout::default()
+        .direction(Direction::Vertical)
+        .margin(0)
+        .constraints([Constraint::Length(size as u16), Constraint::Min(20)].as_ref())
+        .split(f.size());
+
+    draw_main(f, size, chunks[0]);
+    draw_controls(f, chunks[1], iteration);
 }
 
 fn draw_main<B>(f: &mut Frame<B>, size: usize, area: Rect)
@@ -107,14 +121,14 @@ where
     f.render_widget(block, area);
 }
 
-fn draw_controls<B>(f: &mut Frame<B>, area: Rect)
+fn draw_controls<B>(f: &mut Frame<B>, area: Rect, iteration: usize)
 where
     B: Backend,
 {
     let block = Block::default().title("Controls").borders(Borders::ALL);
-    let paragraph = Paragraph::new(
-        "controls: q = quit | p = pause | f = change frame rate | e = evolve without UI | frame {}",
-    )
+    let paragraph = Paragraph::new(format!(
+        "controls: q = quit | p = pause | f = change frame rate | e = evolve without UI | iteration {}",
+    iteration))
     .block(block);
 
     f.render_widget(paragraph, area);
