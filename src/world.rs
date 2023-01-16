@@ -446,17 +446,8 @@ fn dist_abs(from: &(usize, usize), to: &(usize, usize)) -> f32 {
 
 // TODO Test this beast, document differences
 fn dist_rel(world_size: usize, from: &(usize, usize), to: &(usize, usize)) -> f32 {
-    let x1 = from.0 as f32;
-    let y1 = from.1 as f32;
-    let x2 = to.0 as f32;
-    let y2 = to.0 as f32;
-
-    let farthest_possible = ((2 * (world_size ^ 2)) as f32).sqrt();
-
-    // root((x2 - x1)^2 + (y2 - y1)^2)
-    let total_distance = ((x2 - x1).powi(2) + (y2 - y1).powi(2)).sqrt();
-
-    total_distance / farthest_possible
+    let farthest_possible = ((2 * (world_size)).pow(2) as f32).sqrt();
+    dist_abs(from, to) / farthest_possible
 }
 
 // TODO Test the crap out of this
