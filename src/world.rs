@@ -40,6 +40,7 @@ pub struct World<'a> {
 pub enum EventType {
     Death,
     Creation,
+    Mate,
 }
 
 impl<'a> World<'a> {
@@ -272,27 +273,89 @@ impl<'a> World<'a> {
         lf_id: &usize,
         probabilities: Vec<(OutputNeuronType, f32)>,
     ) {
-        let lf = self.lifeforms.get_mut(lf_id).unwrap();
-        let mut loc = &mut lf.location;
-        let size = self.props.size;
+        let other_lf_ids_at_loc =
+            self.other_lf_ids_at_location(*lf_id, &self.lifeforms[lf_id].location);
 
-        for (neuron_type, value) in probabilities {
-            // This reads as continue on with the probability of value so long as value is above 0.
-            if value <= 0.0 || !thread_rng().gen_bool(value as f64) {
-                return;
-            }
+        // TODO
+        // * Get lifeform ids at location
+        // * add them to list of lfs to do the thing to (mate or attack)
+        // * Then execute?
+        let mut lfs_to_mate_with: Vec<usize> = vec![];
+        let mut lfs_to_attack: Vec<usize> = vec![];
 
-            match neuron_type {
-                OutputNeuronType::MoveUp if loc.1 == 0 => (),
-                OutputNeuronType::MoveUp => loc.1 -= 1,
-                OutputNeuronType::MoveRight => loc.0 = usize::min(loc.0 + 1, size),
-                OutputNeuronType::MoveDown => loc.1 = usize::min(loc.1 + 1, size),
-                OutputNeuronType::MoveLeft if loc.0 == 0 => (),
-                OutputNeuronType::MoveLeft => loc.0 -= 1,
-                OutputNeuronType::MoveRandom => randomize(size, loc),
-                OutputNeuronType::Attack => (),
-                OutputNeuronType::Mate => (),
+        {
+            let lf = self.lifeforms.get_mut(lf_id).unwrap();
+            let mut loc = &mut lf.location;
+            let size = self.props.size;
+
+            for (neuron_type, value) in probabilities {
+                // This reads as continue on with the probability of value so long as value is above 0.
+                if value <= 0.0 || !thread_rng().gen_bool(value as f64) {
+                    return;
+                }
+
+                match neuron_type {
+                    OutputNeuronType::MoveUp if loc.1 == 0 => (),
+                    OutputNeuronType::MoveUp => loc.1 -= 1,
+                    OutputNeuronType::MoveRight => loc.0 = usize::min(loc.0 + 1, size),
+                    OutputNeuronType::MoveDown => loc.1 = usize::min(loc.1 + 1, size),
+                    OutputNeuronType::MoveLeft if loc.0 == 0 => (),
+                    OutputNeuronType::MoveLeft => loc.0 -= 1,
+                    OutputNeuronType::MoveRandom => randomize(size, loc),
+                    OutputNeuronType::Attack => other_lf_ids_at_loc
+                        .iter()
+                        .for_each(|id| lfs_to_attack.push(id.clone())),
+                    OutputNeuronType::Mate => other_lf_ids_at_loc
+                        .iter()
+                        .for_each(|id| lfs_to_mate_with.push(id.clone())),
+                }
             }
+        }
+
+        for other_id in lfs_to_mate_with {
+            for _ in 0..5 {
+                let available_id = self.available_lifeform_id();
+                let location = self.lifeforms[lf_id].location;
+                let g1 = &self.lifeforms[lf_id].genome;
+                let g2 = &self.lifeforms[&other_id].genome;
+                let genome = Evolver::mate(&g1, &g2, &self.props.neural_net_helper);
+
+                self.lifeforms.entry(*lf_id).and_modify(|lf| {
+                    lf.hunger += 0.5;
+                    lf.thirst += 0.5;
+                    lf.health += 0.5;
+                });
+
+                self.lifeforms.entry(other_id).and_modify(|lf| {
+                    lf.hunger += 0.5;
+                    lf.thirst += 0.5;
+                    lf.health += 0.5;
+                });
+
+                let new_lf = LifeForm {
+                    id: available_id,
+                    genome,
+                    health: 1.0,
+                    hunger: 0.0,
+                    thirst: 0.0,
+                    lifespan: 0,
+                    location,
+                    neural_net: self.props.neural_net_helper.spawn(),
+                };
+
+                self.events.push((
+                    EventType::Mate,
+                    String::from(format!(
+                        "=> New lifeform {} was birthed from {lf_id} and {other_id}",
+                        &new_lf.id
+                    )),
+                ));
+                self.lifeforms.insert(new_lf.id, new_lf);
+            }
+        }
+
+        for lf_id in lfs_to_attack {
+            //
         }
     }
 
@@ -323,7 +386,12 @@ impl<'a> World<'a> {
             let loc = &lifeform.location;
 
             let (num_in_vicinity, closest_lf_health, closest_lf_loc, closest_lf_distance) =
-                close_lifeform_info_from_info_vec(self.props.size, lifeform_id, loc, &lfs_id_loc_health);
+                close_lifeform_info_from_info_vec(
+                    self.props.size,
+                    lifeform_id,
+                    loc,
+                    &lfs_id_loc_health,
+                );
 
             for (_nid, (neuron_type, neuron)) in lifeform.neural_net.input_neurons.iter_mut() {
                 neuron.value = match neuron_type {
@@ -385,14 +453,17 @@ impl<'a> World<'a> {
         id
     }
 
-    pub fn lifeform_at_location(&self, location: &(usize, usize)) -> Option<&LifeForm> {
+    pub fn other_lf_ids_at_location(&self, id: usize, location: &(usize, usize)) -> Vec<usize> {
+        let mut lf_ids = vec![];
+
+        // TODO This could be sped up by keeping a hashmap of refs to the lifeforms keyed on their
+        // locations
         for lf in self.lifeforms.values() {
-            if &lf.location == location {
-                return Some(lf);
+            if &lf.location == location && lf.id != id {
+                lf_ids.push(lf.id.clone());
             }
         }
 
-        None
+        lf_ids
     }
 }
-

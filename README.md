@@ -34,7 +34,8 @@ and sucks their health down.
 
 * When health hits 0, LF dies (leaving food behind?)
 * Health degrades at inverse square from distance to danger plus a constant rate
-* Mating increases health at a rate proportional to the health of the other LF
+* Mating increases health at a rate proportional to the health of the other LF?
+    * Mating increases hunger
 * Hunger increases rate of health drop
 * Thirst inhibits clarity of input neurons
 * Attacking halves both LFs health or something

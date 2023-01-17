@@ -251,6 +251,7 @@ where
         let color = match event_type {
             EventType::Death => Color::Blue,
             EventType::Creation => Color::Cyan,
+            EventType::Mate => Color::Green,
         };
 
         items.insert(

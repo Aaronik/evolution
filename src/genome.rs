@@ -27,7 +27,8 @@ type Seed = HashMap<usize, Vec<Gene>>;
 
 #[derive(Debug, Clone)]
 pub struct Genome {
-    /// An ordered list of duplicated genes constructed to enable fast and easy neural net calculations
+    /// An ordered list of duplicated genes constructed to enable fast and easy neural net calculations.
+    /// Overwritten by calling genome.recompute_ordered_genes.
     pub ordered_genes: Vec<Gene>,
 
     /// An unordered unique list of genes representing one of each gene the genome has. Use this
@@ -163,3 +164,5 @@ impl Genome {
         ordered_genes
     }
 }
+
+// TODO Test ensure regenerating ordered_genes has the same thing each time

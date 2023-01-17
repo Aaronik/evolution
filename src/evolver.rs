@@ -3,12 +3,28 @@ use rand::{thread_rng, Rng};
 use crate::*;
 
 #[derive(Debug)]
-pub struct Evolver {
-}
+pub struct Evolver {}
 
 impl Evolver {
-    pub fn mate(_lf1: LifeForm, _lf2: LifeForm) -> LifeForm {
-        todo!()
+    pub fn mate(genome1: &Genome, genome2: &Genome, nnh: &NeuralNetHelper) -> Genome {
+        let mut genes = vec![];
+
+        for i in 0..genome1.genes.len() / 2 {
+            genes.push(genome1.genes[i].clone());
+        }
+
+        for i in (genome2.genes.len() / 2)..(genome2.genes.len()) {
+            genes.push(genome2.genes[i].clone());
+        }
+
+        let mut genome = Genome {
+            genes,
+            ordered_genes: vec![], // will be computed after creation
+        };
+
+        genome.recompute_ordered_genes(nnh);
+
+        genome
     }
 
     pub fn fitness(lf: &LifeForm) -> usize {
@@ -40,35 +56,72 @@ impl Evolver {
     }
 }
 
-#[test]
-fn it_mutates_a_genome() {
-    let nnh = NeuralNetHelper::new(0);
+#[cfg(test)]
+mod test {
 
-    let mut genome = Genome::new(GenomeProps {
-        neural_net_helper: &nnh,
-        size: 1,
-    });
+    use super::*;
 
-    let before = genome.clone();
+    #[test]
+    fn it_mates_genomes() {
+        let nnh = NeuralNetHelper::new(0);
 
-    Evolver::mutate(&mut genome, &nnh);
+        let g1 = Genome::new(GenomeProps {
+            neural_net_helper: &nnh,
+            size: 10,
+        });
 
-    let mut has_diff_gene = false;
+        let g2 = Genome::new(GenomeProps {
+            neural_net_helper: &nnh,
+            size: 10,
+        });
 
-    // If they're not the same size, it was definitely updated.
-    if before.ordered_genes.len() != genome.ordered_genes.len() {
-        assert!(true);
-        return;
-    }
+        let g = Evolver::mate(&g1, &g2, &nnh);
 
-    // If it does happen to be the same size, there should be ones that are different.
-    for i in 0..genome.ordered_genes.len() {
-        let b = &before.ordered_genes[i];
-        let a = &genome.ordered_genes[i];
-        if a.from != b.from || a.to != b.to || a.weight != b.weight {
-            has_diff_gene = true;
+        assert_eq!(g.genes.len(), g1.genes.len());
+        assert!(g.ordered_genes.len() > 0);
+
+        let mut has_some_different = false;
+
+        for (idx, a) in g.genes.iter().enumerate() {
+            let b = &g1.genes[idx];
+            if a.weight != b.weight || a.from != b.from || a.to != b.to {
+                has_some_different = true;
+            }
         }
+
+        assert!(has_some_different);
     }
 
-    assert!(has_diff_gene);
+    #[test]
+    fn it_mutates_a_genome() {
+        let nnh = NeuralNetHelper::new(0);
+
+        let mut genome = Genome::new(GenomeProps {
+            neural_net_helper: &nnh,
+            size: 1,
+        });
+
+        let before = genome.clone();
+
+        Evolver::mutate(&mut genome, &nnh);
+
+        let mut has_diff_gene = false;
+
+        // If they're not the same size, it was definitely updated.
+        if before.ordered_genes.len() != genome.ordered_genes.len() {
+            assert!(true);
+            return;
+        }
+
+        // If it does happen to be the same size, there should be ones that are different.
+        for i in 0..genome.ordered_genes.len() {
+            let b = &before.ordered_genes[i];
+            let a = &genome.ordered_genes[i];
+            if a.from != b.from || a.to != b.to || a.weight != b.weight {
+                has_diff_gene = true;
+            }
+        }
+
+        assert!(has_diff_gene);
+    }
 }
