@@ -348,7 +348,10 @@ impl<'a> World<'a> {
                 let location = self.lifeforms[lf_id].location;
                 let g1 = &self.lifeforms[lf_id].genome;
                 let g2 = &self.lifeforms[&other_id].genome;
-                let genome = Evolver::mate(&g1, &g2, &self.props.neural_net_helper);
+                let mut genome = Evolver::mate(&g1, &g2, &self.props.neural_net_helper);
+                if Evolver::should_mutate(self.props.mutation_rate) {
+                    Evolver::mutate(&mut genome, &self.props.neural_net_helper);
+                }
 
                 self.lifeforms.entry(*lf_id).and_modify(|lf| {
                     lf.hunger += 0.5;
