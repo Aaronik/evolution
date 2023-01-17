@@ -252,6 +252,7 @@ where
             EventType::Death => Color::Blue,
             EventType::Creation => Color::Cyan,
             EventType::Mate => Color::Green,
+            EventType::Attack => Color::Red,
         };
 
         items.insert(

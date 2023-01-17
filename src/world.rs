@@ -41,6 +41,7 @@ pub enum EventType {
     Death,
     Creation,
     Mate,
+    Attack,
 }
 
 impl<'a> World<'a> {
@@ -276,10 +277,6 @@ impl<'a> World<'a> {
         let other_lf_ids_at_loc =
             self.other_lf_ids_at_location(*lf_id, &self.lifeforms[lf_id].location);
 
-        // TODO
-        // * Get lifeform ids at location
-        // * add them to list of lfs to do the thing to (mate or attack)
-        // * Then execute?
         let mut lfs_to_mate_with: Vec<usize> = vec![];
         let mut lfs_to_attack: Vec<usize> = vec![];
 
@@ -313,7 +310,7 @@ impl<'a> World<'a> {
         }
 
         for other_id in lfs_to_mate_with {
-            for _ in 0..5 {
+            for _ in 0..2 {
                 let available_id = self.available_lifeform_id();
                 let location = self.lifeforms[lf_id].location;
                 let g1 = &self.lifeforms[lf_id].genome;
@@ -354,8 +351,21 @@ impl<'a> World<'a> {
             }
         }
 
-        for lf_id in lfs_to_attack {
-            //
+        for other_id in lfs_to_attack {
+            self.lifeforms.entry(*lf_id).and_modify(|lf| {
+                lf.hunger += 0.3;
+                lf.thirst += 0.5;
+                lf.health = lf.health / 2.0;
+            });
+
+            self.lifeforms.entry(other_id).and_modify(|lf| {
+                lf.health = lf.health / 2.0;
+            });
+
+            self.events.push((
+                EventType::Attack,
+                String::from(format!("=> {lf_id} just attacked {other_id}!!")),
+            ));
         }
     }
 
