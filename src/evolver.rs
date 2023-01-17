@@ -20,10 +20,7 @@ impl Evolver {
     }
 
     /// Takes a genome, makes a clone of it with a slight mutation, returns that
-    /// TODO Don't have this take and return a genome, have it modify it in place
-    pub fn mutate(genome: &Genome, nnh: &NeuralNetHelper) -> Genome {
-        let mut genome = genome.clone();
-
+    pub fn mutate(genome: &mut Genome, nnh: &NeuralNetHelper) {
         // First we just get one gene at random from the bunch
         let idx = thread_rng().gen_range(0..genome.ordered_genes.len());
         let mut gene = genome.ordered_genes.get_mut(idx).unwrap();
@@ -42,7 +39,23 @@ impl Evolver {
         let clone = gene.clone();
 
         genome.register_gene(clone);
-
-        genome
     }
+}
+
+#[test]
+fn it_mutates_a_genome() {
+    let nnh = NeuralNetHelper::new(3);
+
+    let mut genome = Genome::new(GenomeProps {
+        neural_net_helper: &nnh,
+        size: 3,
+    });
+
+    let before = genome.clone();
+
+    Evolver::mutate(&mut genome, &nnh);
+
+    let mut has_diff_gene = false;
+
+    assert!(has_diff_gene);
 }

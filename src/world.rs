@@ -214,7 +214,7 @@ impl<'a> World<'a> {
             let most_fit_lf = self.most_fit_lifeform();
             let mut genome = most_fit_lf.genome.clone();
             let location = most_fit_lf.location.clone();
-            genome = Evolver::mutate(&mut genome, &self.props.neural_net_helper);
+            Evolver::mutate(&mut genome, &self.props.neural_net_helper);
 
             let lf = LifeForm {
                 id: self.available_lifeform_id(),
