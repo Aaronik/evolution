@@ -323,7 +323,7 @@ impl<'a> World<'a> {
             let loc = &lifeform.location;
 
             let (num_in_vicinity, closest_lf_health, closest_lf_loc, closest_lf_distance) =
-                close_lifeform_info_from_info_vec(lifeform_id, loc, &lfs_id_loc_health);
+                close_lifeform_info_from_info_vec(self.props.size, lifeform_id, loc, &lfs_id_loc_health);
 
             for (_nid, (neuron_type, neuron)) in lifeform.neural_net.input_neurons.iter_mut() {
                 neuron.value = match neuron_type {
@@ -416,20 +416,21 @@ fn generate_lifeform_info_vec(
 ///     distance (of closest lf)
 /// )
 fn close_lifeform_info_from_info_vec(
+    size: usize,
     id: &usize,
     location: &(usize, usize),
     lfs_id_loc_health: &Vec<(usize, (usize, usize), f32)>,
 ) -> (usize, f32, (usize, usize), f32) {
     let mut number_in_vicinity: usize = 0;
     let mut closest_lf_health: f32 = 0.0;
-    let mut closest_lf_distance = f32::INFINITY;
     let mut closest_lf_location: (usize, usize) = (0, 0);
+    let mut closest_lf_distance = f32::INFINITY;
     for (object_id, loc, health) in lfs_id_loc_health {
         if object_id == id {
-            break;
+            continue;
         }
 
-        let dist = dist_abs(location, loc);
+        let dist = dist_rel(size, location, loc);
 
         if dist < closest_lf_distance {
             closest_lf_health = *health;
