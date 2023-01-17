@@ -1,6 +1,6 @@
 use std::{
     io,
-    time::{Duration, Instant},
+    time::{Duration, Instant}, thread,
 };
 
 use crossterm::{
@@ -63,6 +63,10 @@ fn main() {
     // into a different thread.
 
     loop {
+        if paused {
+            thread::sleep(Duration::from_millis(50));
+        }
+
         terminal
             .draw(|f| ui(f, size, &world, iteration, selected_lf_index, saved_tick_rate))
             .unwrap();

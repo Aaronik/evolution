@@ -5,6 +5,7 @@ pub mod runner;
 pub mod genome;
 pub mod evolver;
 pub mod ui;
+pub mod util;
 
 pub use world::*;
 pub use neural_net::*;
@@ -13,3 +14,4 @@ pub use runner::*;
 pub use genome::*;
 pub use evolver::*;
 pub use ui::*;
+pub use util::*;
