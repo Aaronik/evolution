@@ -27,94 +27,72 @@ type Seed = HashMap<usize, Vec<Gene>>;
 
 #[derive(Debug, Clone)]
 pub struct Genome {
-    /// An ordered list of genes constructed to enable fast and easy neural net calculations
+    /// An ordered list of duplicated genes constructed to enable fast and easy neural net calculations
     pub ordered_genes: Vec<Gene>,
 
-    /// The seed for a gene tree. This can be walked like recursive tree.
-    seed: Seed,
-
-    /// How many times we're going to be repeat calculations on a specific gene.
-    /// Some genes create recursive loops, so we can't be following those forever!
-    max_gene_follows: usize,
+    /// An unordered unique list of genes representing one of each gene the genome has. Use this
+    /// list to modify the genes in a genome, then call genome.recompute_ordered_genes().
+    pub genes: Vec<Gene>,
 }
 
 impl Genome {
     pub fn new(props: GenomeProps) -> Self {
-        let nnh = props.neural_net_helper;
-
-        let mut inputs: Vec<usize> = vec![];
-        let mut seed: Seed = HashMap::new();
+        let mut genes: Vec<Gene> = vec![];
 
         for id in 0..props.size {
-            let from = nnh.random_from_neuron();
-            let to = nnh.random_to_neuron();
-            let weight = Genome::random_weight();
-
-            let gene = Gene {
+            genes.push(Gene {
                 id,
-                from,
-                to,
-                weight,
-            };
-
-            if let GeneType::InputGene = Genome::classify_gene(nnh, &gene) {
-                inputs.push(from);
-            }
-
-            seed.entry(from).or_insert(vec![]).push(gene);
+                from: props.neural_net_helper.random_from_neuron(),
+                to: props.neural_net_helper.random_to_neuron(),
+                weight: Genome::random_weight()
+            });
         }
 
+        Self {
+            ordered_genes: Genome::compute_ordered_genes(&genes, props.neural_net_helper),
+            genes,
+        }
+    }
+
+    /// Takes a vector of unique genes, returns a vector of genes duplicated in the correct order
+    /// to walk them to do the neural net calculation. Going from one end of the returned vector to
+    /// the other adding the sums of the neurons for the genes already seen and taking the tanh of
+    /// them, etc, will be like starting at the input neurons and following their connections, then
+    /// following the connection of the next neuron, etc, recursively, for a specified maximum
+    /// number sf times per gene, in case there is a loop. This is the best way I could think of to
+    /// approximate biological neural nets.
+    pub fn compute_ordered_genes(genes: &Vec<Gene>, nnh: &NeuralNetHelper) -> Vec<Gene> {
         // TODO I don't think this is necessary any more, we can make this an arbitrary number.
-        // No matter what, all the genes that can be followed will get followed at least once,
-        // since we're doing it in a more "follow the path" kind of stle.
+        // No matter what, all the genes that can be followed will get followed at least once.
         let max_gene_follows = nnh.inner_neurons.len() + 2;
 
-        let ordered_genes =
-            Genome::generate_ordered_from_seed_and_inputs(&seed, &inputs, max_gene_follows);
-
-        Self { seed, ordered_genes, max_gene_follows }
-    }
-
-    /// Takes a gene and inserts it into the genome. Recomputes the ordered_genes value.
-    /// TODO Might eventually turn this into register_genes() and have it take a vec of genes
-    pub fn register_gene(&mut self, gene: Gene) {
-        let mut inputs: Vec<usize> = vec![];
         let mut seed: Seed = HashMap::new();
-
-        let mut genes = Genome::genes_from_seed(&self.seed);
-        genes.push(gene);
-
+        let mut inputs: Vec<usize> = vec![];
         for gene in genes {
-            Genome::insert_gene_to_seed_and_inputs(gene, &mut seed, &mut inputs);
-        }
-
-        self.ordered_genes = Genome::generate_ordered_from_seed_and_inputs(&seed, &inputs, self.max_gene_follows);
-        self.seed = seed;
-    }
-
-    fn insert_gene_to_seed_and_inputs(gene: Gene, seed: &mut Seed, inputs: &mut Vec<usize>) {
-        let from = gene.from.clone();
-        seed.entry(gene.from).or_insert(vec![]).push(gene);
-        inputs.push(from);
-
-    }
-
-    fn genes_from_seed(seed: &Seed) -> Vec<Gene> {
-        let mut genes = vec![];
-
-        for sub_genes in seed.values() {
-            for gene in sub_genes {
-                genes.push(gene.clone());
+            if let GeneType::InputGene = Genome::classify_gene(nnh, &gene) {
+                inputs.push(gene.from);
             }
+
+            seed.entry(gene.from).or_insert(vec![]).push(gene.clone());
         }
 
-        genes
+        Genome::generate_ordered_from_seed_and_inputs(&seed, &inputs, max_gene_follows)
+    }
+
+    /// After the genome.genes vector has been messed with, call this to rebuild the data
+    /// structures necessary to efficiently calculate this genome's neural net probabilities.
+    pub fn recompute_ordered_genes(&mut self, nnh: &NeuralNetHelper) {
+        self.ordered_genes = Genome::compute_ordered_genes(&self.genes, nnh);
     }
 
     pub fn random_weight() -> f32 {
         thread_rng().gen_range(-4.0..=4.0)
     }
 
+    /// An InputGene is one that comes from an input. These are where you start when you do a
+    /// recursive calculation to find out the final output neuron probabilities. An InnerGene is
+    /// one that goes from an inner neuron to another inner neuron. An OutputGene is from an
+    /// InnerNeuron to an OutputNeuron.
     pub fn classify_gene(nnh: &NeuralNetHelper, gene: &Gene) -> GeneType {
         if let NeuronType::InputNeuron = nnh.neuron_type(&gene.from) {
             return GeneType::InputGene;
