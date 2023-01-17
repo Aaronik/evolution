@@ -42,6 +42,7 @@ pub enum EventType {
     Creation,
     Mate,
     Attack,
+    AsexuallyReproduce,
 }
 
 impl<'a> World<'a> {
@@ -117,6 +118,7 @@ impl<'a> World<'a> {
         // To avoid interior mutability, this keeps track of which lifeforms
         // are marked as deceased and will be removed after the mutable loop.
         let mut has_died: Vec<usize> = vec![];
+        let mut has_split: Vec<((usize, usize), Genome)> = vec![];
 
         // do effects of environment on lifeforms
         for mut lf in self.lifeforms.values_mut() {
@@ -126,7 +128,18 @@ impl<'a> World<'a> {
 
             // If the lifeform is on a resource, remove it
             if self.food.remove(&lf.location) {
-                lf.hunger = 0.0;
+                lf.hunger -= 0.5;
+                if lf.hunger < 0.0 {
+                    lf.hunger = 0.0;
+                    has_split.push((lf.location.clone(), lf.genome.clone()));
+                    self.events.push((
+                        EventType::AsexuallyReproduce,
+                        format!(
+                            "=> Lifeform {} has reproduced asexually by eating enough food!",
+                            lf.id
+                        ),
+                    ));
+                }
             }
 
             if self.water.remove(&lf.location) {
@@ -160,6 +173,26 @@ impl<'a> World<'a> {
             self.lifeforms.remove(&lf_id);
             self.events
                 .push((EventType::Death, format!("=> Lifeform {} has died!", lf_id)));
+        }
+
+        for info in has_split {
+            let id = self.available_lifeform_id();
+            let mut genome = info.1.clone();
+
+            if Evolver::should_mutate(self.props.mutation_rate) {
+                Evolver::mutate(&mut genome, self.props.neural_net_helper)
+            }
+
+            self.lifeforms.insert(id, LifeForm {
+                id,
+                genome,
+                health: 1.0,
+                hunger: 0.0,
+                thirst: 0.0,
+                location: info.0.clone(),
+                lifespan: 0,
+                neural_net: self.props.neural_net_helper.spawn(),
+            });
         }
 
         // Run the neural net calculations. Uses rayon's par_iter() to parallelise the calculations
