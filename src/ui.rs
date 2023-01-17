@@ -4,7 +4,7 @@ use tui::{
     backend::Backend,
     layout::{Constraint, Direction, Layout, Rect},
     style::{Color, Modifier, Style},
-    text::Span,
+    text::{Span, Spans},
     widgets::{canvas::Canvas, Block, Borders, List, ListItem, Paragraph, Row, Table},
     Frame,
 };
@@ -50,8 +50,9 @@ fn draw_controls<B>(f: &mut Frame<B>, area: Rect, iteration: usize, saved_tick_r
 where
     B: Backend,
 {
-    let block = Block::default().title("Controls").borders(Borders::ALL);
-    let text = format!( "controls: q = quit | p = pause | Up/Down = Select LifeForm | Left/Right = change tick rate | tick rate: {}ms | iteration: {}", saved_tick_rate, iteration);
+    let block = Block::default().title("Info").borders(Borders::ALL);
+    let mut text = vec![Spans::from("Controls: q = quit | p = pause | Up/Down = Select LifeForm | Left/Right = change tick rate")];
+    text.push(Spans::from(format!("Info: tick rate: {}ms | iteration: {}", saved_tick_rate, iteration)));
     let paragraph = Paragraph::new(text).block(block);
 
     f.render_widget(paragraph, area);
@@ -312,8 +313,6 @@ where
         lf = lf_opt.unwrap();
     }
 
-    items.push(ListItem::new("-- Input Neurons --"));
-
     for (neuron_type, neuron) in lf.neural_net.input_neurons.values() {
         items.push(ListItem::new(format!(
             "{:?}: {:?}",
@@ -328,7 +327,7 @@ where
 
     let list = List::new(items).block(
         Block::default()
-            .title(format!("LifeForm {}", lf.id))
+            .title("Input Neuron Values")
             .borders(Borders::ALL),
     );
 
