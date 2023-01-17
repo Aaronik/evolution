@@ -344,7 +344,7 @@ impl<'a> World<'a> {
                     InputNeuronType::Health => lifeform.health,
                     InputNeuronType::Hunger => lifeform.hunger,
                     InputNeuronType::Thirst => lifeform.thirst,
-                    InputNeuronType::PopulationDensity => (num_lifeforms / size ^ 2) as f32,
+                    InputNeuronType::PopulationDensity => num_lifeforms as f32 / size.pow(2) as f32,
                     InputNeuronType::NeighborhoodDensity => (num_in_vicinity / 8) as f32,
                     InputNeuronType::Random => thread_rng().gen_range(0.0..=1.0),
                     InputNeuronType::Oscillator => self.oscillator,
