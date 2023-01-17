@@ -1,6 +1,6 @@
 use std::{
     io,
-    time::{Duration, Instant}, thread,
+    time::{Duration, Instant}
 };
 
 use crossterm::{
@@ -62,16 +62,14 @@ fn main() {
     // can go much faster than that. So first step to speed up will be to extract the program out
     // into a different thread.
 
-    loop {
-        if paused {
-            thread::sleep(Duration::from_millis(50));
-        }
+    let mut pause_info = 0;
 
+    loop {
         terminal
             .draw(|f| ui(f, size, &world, iteration, selected_lf_index, saved_tick_rate))
             .unwrap();
 
-        let mut tick_rate = Duration::from_millis(saved_tick_rate);
+        let tick_rate = Duration::from_millis(saved_tick_rate);
 
         let timeout = tick_rate
             .checked_sub(last_tick.elapsed())
@@ -84,10 +82,11 @@ fn main() {
                     KeyCode::Char('p') => {
                         if paused {
                             paused = false;
-                            tick_rate = Duration::from_millis(saved_tick_rate);
+                            saved_tick_rate = pause_info;
                         } else {
                             paused = true;
-                            tick_rate = Duration::from_secs(u64::MAX);
+                            pause_info = saved_tick_rate.clone();
+                            saved_tick_rate = u64::MAX;
                         }
                     }
                     KeyCode::Up => selected_lf_index = i32::max(0, selected_lf_index - 1),
@@ -103,10 +102,6 @@ fn main() {
         }
 
         if last_tick.elapsed() >= tick_rate {
-            if paused {
-                continue;
-            }
-
             world.step();
             last_tick = Instant::now();
         }
