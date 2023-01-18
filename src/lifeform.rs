@@ -44,7 +44,9 @@ impl LifeForm {
 
         // Idea here is to go through each gene in the ordered genes here and if there's an entry
         // in the running sums map, add that... Trailing off b/c I have another idea.
-        for gene in &self.genome.ordered_genes {
+        for gene_idx in &self.genome.ordered_gene_indices {
+            let gene = &self.genome.genes[*gene_idx];
+
             if let NeuronType::InputNeuron = nnh.neuron_type(&gene.from) {
                 running_sums.insert(gene.from, self.neural_net.input_neurons[&gene.from].1.value);
             }

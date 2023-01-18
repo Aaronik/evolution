@@ -251,7 +251,7 @@ where
         let color = match event_type {
             EventType::Death => Color::Blue,
             EventType::Creation => Color::Cyan,
-            EventType::Mate => Color::LightRed,
+            EventType::Mate => Color::Magenta,
             EventType::Attack => Color::Red,
             EventType::AsexuallyReproduce => Color::LightGreen,
         };

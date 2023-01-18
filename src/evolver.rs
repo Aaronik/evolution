@@ -9,6 +9,7 @@ impl Evolver {
     pub fn mate(genome1: &Genome, genome2: &Genome, nnh: &NeuralNetHelper) -> Genome {
         let mut genes = vec![];
 
+        // TODO parallelize
         for i in 0..genome1.genes.len() / 2 {
             genes.push(genome1.genes[i].clone());
         }
@@ -19,10 +20,10 @@ impl Evolver {
 
         let mut genome = Genome {
             genes,
-            ordered_genes: vec![], // will be computed after creation
+            ordered_gene_indices: vec![], // will be computed after creation
         };
 
-        genome.recompute_ordered_genes(nnh);
+        genome.recompute_ordered_gene_indices(nnh);
 
         genome
     }
@@ -52,7 +53,7 @@ impl Evolver {
             gene.to = nnh.random_to_neuron();
         }
 
-        genome.recompute_ordered_genes(nnh);
+        genome.recompute_ordered_gene_indices(nnh);
     }
 }
 
@@ -78,7 +79,7 @@ mod test {
         let g = Evolver::mate(&g1, &g2, &nnh);
 
         assert_eq!(g.genes.len(), g1.genes.len());
-        assert!(g.ordered_genes.len() > 0);
+        assert!(g.ordered_gene_indices.len() > 0);
 
         let mut has_some_different = false;
 
@@ -108,16 +109,16 @@ mod test {
         let mut has_diff_gene = false;
 
         // If they're not the same size, it was definitely updated.
-        if before.ordered_genes.len() != genome.ordered_genes.len() {
+        if before.ordered_gene_indices.len() != genome.ordered_gene_indices.len() {
             assert!(true);
             return;
         }
 
         // If it does happen to be the same size, there should be ones that are different.
-        for i in 0..genome.ordered_genes.len() {
-            let b = &before.ordered_genes[i];
-            let a = &genome.ordered_genes[i];
-            if a.from != b.from || a.to != b.to || a.weight != b.weight {
+        for i in 0..genome.ordered_gene_indices.len() {
+            let b = &before.ordered_gene_indices[i];
+            let a = &genome.ordered_gene_indices[i];
+            if a != b {
                 has_diff_gene = true;
             }
         }
