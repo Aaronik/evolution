@@ -82,7 +82,7 @@ fn main() {
     let mut paused = false;
 
     // Which lifeform is currently selected within the UI
-    let mut selected_lf_index: i32 = 0;
+    let mut selected_lf_index: i64 = 0;
 
     // TODO So the UI is only capable of drawing like 100 frames per second, even if the program
     // can go much faster than that. So first step to speed up will be to extract the program out
@@ -91,8 +91,10 @@ fn main() {
     let mut pause_info = 0;
 
     loop {
+        let lf = world.lifeforms.iter().map(|i| i.1).nth(selected_lf_index as usize);
+
         terminal
-            .draw(|f| ui(f, size, &world, iteration, selected_lf_index, saved_tick_rate))
+            .draw(|f| ui(f, size, &world, iteration, lf, saved_tick_rate))
             .unwrap();
 
         let tick_rate = Duration::from_millis(saved_tick_rate);
@@ -115,10 +117,10 @@ fn main() {
                             saved_tick_rate = u64::MAX;
                         }
                     }
-                    KeyCode::Up => selected_lf_index = i32::max(0, selected_lf_index - 1),
+                    KeyCode::Up => selected_lf_index = i64::max(0, selected_lf_index - 1),
                     KeyCode::Down => {
                         selected_lf_index =
-                            i32::min(world.lifeforms.len() as i32 - 1, selected_lf_index + 1)
+                            i64::min(world.lifeforms.len() as i64 - 1, selected_lf_index + 1)
                     }
                     KeyCode::Left => saved_tick_rate = saved_tick_rate / 3,
                     KeyCode::Right => saved_tick_rate = (saved_tick_rate * 2) + 1,
@@ -129,10 +131,10 @@ fn main() {
 
         if last_tick.elapsed() >= tick_rate {
             world.step();
+            iteration += 1;
             last_tick = Instant::now();
         }
 
-        iteration += 1;
     }
 
     // restore terminal

@@ -16,7 +16,7 @@ pub fn ui<B>(
     size: usize,
     world: &World,
     iteration: usize,
-    selected_lf_index: i32,
+    selected_lf: Option<&LifeForm>,
     tick_rate: u64,
 ) where
     B: Backend,
@@ -27,22 +27,14 @@ pub fn ui<B>(
         .constraints([Constraint::Length(size as u16), Constraint::Min(20)].as_ref())
         .split(f.size());
 
-    draw_main(
-        f,
-        size,
-        selected_lf_index,
-        tick_rate,
-        iteration,
-        world,
-        chunks[0],
-    );
+    draw_main(f, size, selected_lf, tick_rate, iteration, world, chunks[0]);
     draw_controls(f, chunks[1]);
 }
 
 fn draw_main<B>(
     f: &mut Frame<B>,
     size: usize,
-    selected_lf_index: i32,
+    selected_lf: Option<&LifeForm>,
     tick_rate: u64,
     iteration: usize,
     world: &World,
@@ -56,15 +48,8 @@ fn draw_main<B>(
         .constraints([Constraint::Length(size as u16), Constraint::Min(10)].as_ref())
         .split(area);
 
-    draw_world(f, size, selected_lf_index, world, chunks[0]);
-    draw_right(
-        f,
-        selected_lf_index,
-        tick_rate,
-        iteration,
-        world,
-        chunks[1],
-    );
+    draw_world(f, size, selected_lf, world, chunks[0]);
+    draw_right(f, selected_lf, tick_rate, iteration, world, chunks[1]);
 }
 
 fn draw_controls<B>(f: &mut Frame<B>, area: Rect)
@@ -80,11 +65,15 @@ where
     f.render_widget(paragraph, area);
 }
 
-fn draw_world<B>(f: &mut Frame<B>, size: usize, selected_lf_index: i32, world: &World, area: Rect)
-where
+fn draw_world<B>(
+    f: &mut Frame<B>,
+    size: usize,
+    selected_lf: Option<&LifeForm>,
+    world: &World,
+    area: Rect,
+) where
     B: Backend,
 {
-
     // Ideations on how to print the lifeforms once they have a direction
     // Ô (circumplex), O̺ (combined inverted bridge below), Ό (with tonos), O҉ (cryllic millions sign), O҈ (cryllic hundred thousands sign)
     // Oՙ (armenian half ring), O֑ (hebre etnahta), O֒ ,O֓ , O֔ , O֕ , ֕O, O֟, O֚   , O֛   O֣
@@ -125,7 +114,7 @@ where
 
             let mut num_at_location: HashMap<(usize, usize), usize> = HashMap::new();
 
-            for (idx, lf) in world.lifeforms.values().enumerate() {
+            for lf in world.lifeforms.values() {
                 *num_at_location.entry(lf.location).or_insert(0) += 1;
                 let num = num_at_location[&lf.location];
 
@@ -157,12 +146,20 @@ where
                     _ => Color::White,
                 };
 
-                if idx == selected_lf_index as usize {
-                    ctx.print(
-                        lf.location.0 as f64,
-                        lf.location.1 as f64,
-                        Span::styled(char, Style::default().fg(Color::White)),
-                    );
+                if let Some(selected_lf) = selected_lf {
+                    if lf.id == selected_lf.id {
+                        ctx.print(
+                            lf.location.0 as f64,
+                            lf.location.1 as f64,
+                            Span::styled(char, Style::default().fg(Color::White)),
+                        );
+                    } else {
+                        ctx.print(
+                            lf.location.0 as f64,
+                            lf.location.1 as f64,
+                            Span::styled(char, Style::default().fg(color)),
+                        );
+                    }
                 } else {
                     ctx.print(
                         lf.location.0 as f64,
@@ -192,7 +189,7 @@ where
 
 fn draw_right<B>(
     f: &mut Frame<B>,
-    selected_lf_index: i32,
+    selected_lf: Option<&LifeForm>,
     tick_rate: u64,
     iteration: usize,
     world: &World,
@@ -207,7 +204,7 @@ fn draw_right<B>(
         .split(area);
 
     draw_top_right(f, tick_rate, iteration, world, chunks[0]);
-    draw_single_lf_information(f, selected_lf_index, world, chunks[1]);
+    draw_single_lf_information(f, selected_lf, world, chunks[1]);
 }
 
 // TODO UI update, top right panel
@@ -219,7 +216,7 @@ fn draw_right<B>(
 
 fn draw_single_lf_information<B>(
     f: &mut Frame<B>,
-    selected_lf_index: i32,
+    selected_lf: Option<&LifeForm>,
     world: &World,
     area: Rect,
 ) where
@@ -239,28 +236,31 @@ fn draw_single_lf_information<B>(
         )
         .split(area);
 
-    draw_lf_selection(f, selected_lf_index, world, chunks[0]);
-    draw_lf_input_neuron_values(f, selected_lf_index, world, chunks[1]);
-    draw_lf_output_neuron_values(f, selected_lf_index, world, chunks[2]);
-    draw_lf_neural_net(f, selected_lf_index, world, chunks[3]);
+    draw_lf_selection(f, selected_lf, world, chunks[0]);
+    draw_lf_input_neuron_values(f, selected_lf, chunks[1]);
+    draw_lf_output_neuron_values(f, selected_lf, chunks[2]);
+    draw_lf_neural_net(f, selected_lf, chunks[3]);
 }
 
-fn draw_lf_selection<B>(f: &mut Frame<B>, selected_lf_index: i32, world: &World, area: Rect)
+fn draw_lf_selection<B>(f: &mut Frame<B>, selected_lf: Option<&LifeForm>, world: &World, area: Rect)
 where
     B: Backend,
 {
     let items: Vec<ListItem> = world
         .lifeforms
         .values()
-        .enumerate()
-        .map(|(idx, lf)| {
-            if idx == selected_lf_index as usize {
-                ListItem::new(format!("=> {}", lf.id)).style(
-                    Style::default()
-                        .bg(Color::White)
-                        .fg(Color::Black)
-                        .add_modifier(Modifier::BOLD),
-                )
+        .map(|lf| {
+            if let Some(selected_lf) = selected_lf {
+                if lf.id == selected_lf.id {
+                    ListItem::new(format!("=> {}", lf.id)).style(
+                        Style::default()
+                            .bg(Color::White)
+                            .fg(Color::Black)
+                            .add_modifier(Modifier::BOLD),
+                    )
+                } else {
+                    ListItem::new(format!("{}", lf.id))
+                }
             } else {
                 ListItem::new(format!("{}", lf.id))
             }
@@ -278,24 +278,18 @@ where
 
 fn draw_lf_input_neuron_values<B>(
     f: &mut Frame<B>,
-    selected_lf_index: i32,
-    world: &World,
+    selected_lf: Option<&LifeForm>,
     area: Rect,
 ) where
     B: Backend,
 {
-    let mut items: Vec<ListItem> = vec![];
-
-    let lf_opt = world.lifeforms.values().nth(selected_lf_index as usize);
-    let lf: &LifeForm;
-
-    if let None = lf_opt {
+    if let None = selected_lf {
         return;
-    } else {
-        lf = lf_opt.unwrap();
     }
 
-    for (neuron_type, neuron) in lf.neural_net.input_neurons.values() {
+    let mut items: Vec<ListItem> = vec![];
+
+    for (neuron_type, neuron) in selected_lf.unwrap().neural_net.input_neurons.values() {
         items.push(ListItem::new(format!(
             "{:?}: {:?}",
             neuron_type, neuron.value
@@ -304,7 +298,10 @@ fn draw_lf_input_neuron_values<B>(
 
     let list = List::new(items).block(
         Block::default()
-            .title(format!("Input Neuron Values for {}", lf.id))
+            .title(format!(
+                "Input Neuron Values for {}",
+                selected_lf.unwrap().id
+            ))
             .borders(Borders::ALL),
     );
 
@@ -313,28 +310,25 @@ fn draw_lf_input_neuron_values<B>(
 
 fn draw_lf_output_neuron_values<B>(
     f: &mut Frame<B>,
-    selected_lf_index: i32,
-    world: &World,
+    selected_lf: Option<&LifeForm>,
     area: Rect,
 ) where
     B: Backend,
 {
-
-    let lf_opt = world.lifeforms.values().nth(selected_lf_index as usize);
-    let lf: &LifeForm;
-
-    if let None = lf_opt {
+    if let None = selected_lf {
         return;
-    } else {
-        lf = lf_opt.unwrap();
     }
 
     let values: &Vec<(OutputNeuronType, f32)>;
 
-    if let None = lf.most_recent_output_neuron_values {
+    if let None = selected_lf.unwrap().most_recent_output_neuron_values {
         return;
     } else {
-        values = lf.most_recent_output_neuron_values.as_ref().unwrap();
+        values = selected_lf
+            .unwrap()
+            .most_recent_output_neuron_values
+            .as_ref()
+            .unwrap();
     }
 
     let mut items: Vec<ListItem> = vec![];
@@ -343,23 +337,24 @@ fn draw_lf_output_neuron_values<B>(
         items.push(ListItem::new(format!("{:?}: {}", neuron_type, value)));
     }
 
-    let list = List::new(items).block(Block::default().title("Output Neuron Values").borders(Borders::ALL));
+    let list = List::new(items).block(
+        Block::default()
+            .title("Output Neuron Values")
+            .borders(Borders::ALL),
+    );
 
     f.render_widget(list, area);
 }
 
-fn draw_lf_neural_net<B>(f: &mut Frame<B>, selected_lf_index: i32, world: &World, area: Rect)
-where
+fn draw_lf_neural_net<B>(
+    f: &mut Frame<B>,
+    selected_lf: Option<&LifeForm>,
+    area: Rect,
+) where
     B: Backend,
 {
-    // TODO Take all this and just move it to the top and pass in the lifeform.
-    let lf_opt = world.lifeforms.values().nth(selected_lf_index as usize);
-    let lf: &LifeForm;
-
-    if let None = lf_opt {
+    if let None = selected_lf {
         return;
-    } else {
-        lf = lf_opt.unwrap();
     }
 
     // TODO This is gonna be friggin awesome
@@ -370,9 +365,9 @@ where
         .paint(|ctx| {
             ctx.print(
                 0.0 as f64,
-                lf.lifespan as f64 / 10.0,
+                selected_lf.unwrap().lifespan as f64 / 10.0,
                 Span::styled(
-                    format!("TODO LF {} Neural Net", lf.id),
+                    format!("TODO LF {} Neural Net", selected_lf.unwrap().id),
                     Style::default()
                         .fg(Color::White)
                         .bg(Color::Red)
@@ -384,13 +379,8 @@ where
     f.render_widget(neural_net_canvas, area);
 }
 
-fn draw_top_right<B>(
-    f: &mut Frame<B>,
-    tick_rate: u64,
-    iteration: usize,
-    world: &World,
-    area: Rect,
-) where
+fn draw_top_right<B>(f: &mut Frame<B>, tick_rate: u64, iteration: usize, world: &World, area: Rect)
+where
     B: Backend,
 {
     let chunks = Layout::default()
