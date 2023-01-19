@@ -17,7 +17,7 @@ pub fn ui<B>(
     world: &World,
     iteration: usize,
     selected_lf_index: i32,
-    saved_tick_rate: u64,
+    tick_rate: u64,
 ) where
     B: Backend,
 {
@@ -31,7 +31,7 @@ pub fn ui<B>(
         f,
         size,
         selected_lf_index,
-        saved_tick_rate,
+        tick_rate,
         iteration,
         world,
         chunks[0],
@@ -43,7 +43,7 @@ fn draw_main<B>(
     f: &mut Frame<B>,
     size: usize,
     selected_lf_index: i32,
-    saved_tick_rate: u64,
+    tick_rate: u64,
     iteration: usize,
     world: &World,
     area: Rect,
@@ -60,7 +60,7 @@ fn draw_main<B>(
     draw_right(
         f,
         selected_lf_index,
-        saved_tick_rate,
+        tick_rate,
         iteration,
         world,
         chunks[1],
@@ -193,7 +193,7 @@ where
 fn draw_right<B>(
     f: &mut Frame<B>,
     selected_lf_index: i32,
-    saved_tick_rate: u64,
+    tick_rate: u64,
     iteration: usize,
     world: &World,
     area: Rect,
@@ -206,7 +206,7 @@ fn draw_right<B>(
         .constraints([Constraint::Percentage(50), Constraint::Percentage(50)].as_ref())
         .split(area);
 
-    draw_top_right(f, saved_tick_rate, iteration, world, chunks[0]);
+    draw_top_right(f, tick_rate, iteration, world, chunks[0]);
     draw_single_lf_information(f, selected_lf_index, world, chunks[1]);
 }
 
@@ -386,7 +386,7 @@ where
 
 fn draw_top_right<B>(
     f: &mut Frame<B>,
-    saved_tick_rate: u64,
+    tick_rate: u64,
     iteration: usize,
     world: &World,
     area: Rect,
@@ -399,13 +399,13 @@ fn draw_top_right<B>(
         .constraints([Constraint::Percentage(35), Constraint::Percentage(65)].as_ref())
         .split(area);
 
-    draw_world_information(f, saved_tick_rate, iteration, world, chunks[0]);
+    draw_world_information(f, tick_rate, iteration, world, chunks[0]);
     draw_events(f, world, chunks[1]);
 }
 
 fn draw_world_information<B>(
     f: &mut Frame<B>,
-    saved_tick_rate: u64,
+    tick_rate: u64,
     iteration: usize,
     world: &World,
     area: Rect,
@@ -426,7 +426,7 @@ fn draw_world_information<B>(
     items.push(
         ListItem::new(format!(
             "Info: tick rate: {}ms | iteration: {}",
-            saved_tick_rate, iteration
+            tick_rate, iteration
         ))
         .style(Style::default().fg(Color::Cyan)),
     );
