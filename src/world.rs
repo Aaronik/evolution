@@ -177,20 +177,22 @@ impl<'a> World<'a> {
                     location: info.0,
                     lifespan: 0,
                     neural_net: self.props.neural_net_helper.spawn(),
+                    most_recent_output_neuron_values: None,
                 },
             );
         }
 
         // Run the neural net calculations. Uses rayon's par_iter() to parallelise the calculations
         // across threads.
-        let all_output_neuron_probabilities: Vec<(usize, Vec<(OutputNeuronType, f32)>)> = self
+        let all_output_neuron_values: Vec<(usize, Vec<(OutputNeuronType, f32)>)> = self
             .lifeforms
             .par_iter()
             .map(|(lf_id, lf)| (*lf_id, lf.run_neural_net(&self.props.neural_net_helper)))
             .collect();
 
-        for (lf_id, output_neuron_probabilities) in all_output_neuron_probabilities {
-            self.process_output_probabilities(&lf_id, output_neuron_probabilities);
+        for (lf_id, output_neuron_values) in all_output_neuron_values {
+            self.process_output_neuron_values(&lf_id, &output_neuron_values);
+            self.lifeforms.entry(lf_id).and_modify(|lf| lf.most_recent_output_neuron_values = Some(output_neuron_values));
         }
 
         self.ensure_lifeform_count();
@@ -260,6 +262,7 @@ impl<'a> World<'a> {
                 thirst: 0.0,
                 lifespan: 0,
                 neural_net: self.props.neural_net_helper.spawn(),
+                most_recent_output_neuron_values: None,
             };
 
             self.events.push((
@@ -302,10 +305,10 @@ impl<'a> World<'a> {
         most_fit_lf.unwrap()
     }
 
-    fn process_output_probabilities(
+    fn process_output_neuron_values(
         &mut self,
         lf_id: &usize,
-        probabilities: Vec<(OutputNeuronType, f32)>,
+        values: &Vec<(OutputNeuronType, f32)>,
     ) {
         let other_lf_ids_at_loc =
             self.other_lf_ids_at_location(*lf_id, &self.lifeforms[lf_id].location);
@@ -318,9 +321,9 @@ impl<'a> World<'a> {
             let mut loc = &mut lf.location;
             let size = self.props.size;
 
-            for (neuron_type, value) in probabilities {
+            for (neuron_type, value) in values {
                 // This reads as continue on with the probability of value so long as value is above 0.
-                if value <= 0.0 || !thread_rng().gen_bool(value as f64) {
+                if *value <= 0.0 || !thread_rng().gen_bool(*value as f64) {
                     return;
                 }
 

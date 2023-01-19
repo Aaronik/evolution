@@ -5,12 +5,11 @@ use tui::{
     layout::{Constraint, Direction, Layout, Rect},
     style::{Color, Modifier, Style},
     text::{Span, Spans},
-    widgets::{canvas::Canvas, Block, Borders, List, ListItem, Paragraph, Row, Table},
+    widgets::{canvas::Canvas, Block, Borders, List, ListItem, Paragraph},
     Frame,
 };
 
-use crate::{World, EventType, LifeForm};
-
+use crate::*;
 
 pub fn ui<B>(
     f: &mut Frame<B>,
@@ -28,12 +27,27 @@ pub fn ui<B>(
         .constraints([Constraint::Length(size as u16), Constraint::Min(20)].as_ref())
         .split(f.size());
 
-    draw_main(f, size, selected_lf_index, world, chunks[0]);
-    draw_controls(f, chunks[1], iteration, saved_tick_rate);
+    draw_main(
+        f,
+        size,
+        selected_lf_index,
+        saved_tick_rate,
+        iteration,
+        world,
+        chunks[0],
+    );
+    draw_controls(f, chunks[1]);
 }
 
-fn draw_main<B>(f: &mut Frame<B>, size: usize, selected_lf_index: i32, world: &World, area: Rect)
-where
+fn draw_main<B>(
+    f: &mut Frame<B>,
+    size: usize,
+    selected_lf_index: i32,
+    saved_tick_rate: u64,
+    iteration: usize,
+    world: &World,
+    area: Rect,
+) where
     B: Backend,
 {
     let chunks = Layout::default()
@@ -43,16 +57,24 @@ where
         .split(area);
 
     draw_world(f, size, selected_lf_index, world, chunks[0]);
-    draw_right(f, selected_lf_index, world, chunks[1]);
+    draw_right(
+        f,
+        selected_lf_index,
+        saved_tick_rate,
+        iteration,
+        world,
+        chunks[1],
+    );
 }
 
-fn draw_controls<B>(f: &mut Frame<B>, area: Rect, iteration: usize, saved_tick_rate: u64)
+fn draw_controls<B>(f: &mut Frame<B>, area: Rect)
 where
     B: Backend,
 {
-    let block = Block::default().title("Info").borders(Borders::ALL);
-    let mut text = vec![Spans::from("Controls: q = quit | p = pause | Up/Down = Select LifeForm | Left/Right = change tick rate")];
-    text.push(Spans::from(format!("Info: tick rate: {}ms | iteration: {}", saved_tick_rate, iteration)));
+    let block = Block::default().title("Controls").borders(Borders::ALL);
+    let text = vec![Spans::from(
+        "q = quit | p = pause | Up/Down = Select LifeForm | Left/Right = change tick rate",
+    )];
     let paragraph = Paragraph::new(text).block(block);
 
     f.render_widget(paragraph, area);
@@ -62,6 +84,16 @@ fn draw_world<B>(f: &mut Frame<B>, size: usize, selected_lf_index: i32, world: &
 where
     B: Backend,
 {
+
+    // Ideations on how to print the lifeforms once they have a direction
+    // Ô (circumplex), O̺ (combined inverted bridge below), Ό (with tonos), O҉ (cryllic millions sign), O҈ (cryllic hundred thousands sign)
+    // Oՙ (armenian half ring), O֑ (hebre etnahta), O֒ ,O֓ , O֔ , O֕ , ֕O, O֟, O֚   , O֛   O֣
+    // ↘҉  , ↗, ↙, ↖,
+    // Use arrows with the "combining cryllic millions sign (U+0489)", found here: https://www.fileformat.info/info/charset/UTF-8/list.htm?start=1024
+    // TRIANGLES: ▲, ◥, ▶, ◢, ▼, ◣, ◀, ◤,
+    //
+    // TRIANGLES: ▲҉, ◥҉, ▶҉, ◢҉, ▼҉, ◣҉, ◀҉, ◤҉,
+
     let world_canvas = Canvas::default()
         .block(Block::default().title("World").borders(Borders::ALL))
         .x_bounds([0.0, size as f64])
@@ -129,20 +161,13 @@ where
                     ctx.print(
                         lf.location.0 as f64,
                         lf.location.1 as f64,
-                        Span::styled(
-                            char,
-                            Style::default()
-                                .fg(Color::White)
-                        ),
+                        Span::styled(char, Style::default().fg(Color::White)),
                     );
                 } else {
                     ctx.print(
                         lf.location.0 as f64,
                         lf.location.1 as f64,
-                        Span::styled(
-                            char,
-                            Style::default().fg(color),
-                        ),
+                        Span::styled(char, Style::default().fg(color)),
                     );
                 }
             }
@@ -165,8 +190,14 @@ where
     f.render_widget(world_canvas, area);
 }
 
-fn draw_right<B>(f: &mut Frame<B>, selected_lf_index: i32, world: &World, area: Rect)
-where
+fn draw_right<B>(
+    f: &mut Frame<B>,
+    selected_lf_index: i32,
+    saved_tick_rate: u64,
+    iteration: usize,
+    world: &World,
+    area: Rect,
+) where
     B: Backend,
 {
     let chunks = Layout::default()
@@ -175,52 +206,23 @@ where
         .constraints([Constraint::Percentage(50), Constraint::Percentage(50)].as_ref())
         .split(area);
 
-    draw_stats(f, selected_lf_index, world, chunks[0]);
-    draw_bottom_right(f, selected_lf_index, world, chunks[1]);
+    draw_top_right(f, saved_tick_rate, iteration, world, chunks[0]);
+    draw_single_lf_information(f, selected_lf_index, world, chunks[1]);
 }
 
-fn draw_stats<B>(f: &mut Frame<B>, selected_lf_index: i32, world: &World, area: Rect)
-where
-    B: Backend,
-{
-    let header = Row::new(["id", "lifespan", "health", "hunger", "thirst", "location"])
-        .height(1)
-        .bottom_margin(1);
+// TODO UI update, top right panel
+// Select
+// Graphs of health, thirst, hunger
+// Input neuron values
+// Output neuron values
+// Reach: I'd LOVE to see the neural net somehow
 
-    let rows = world.lifeforms.values().enumerate().map(|(idx, lf)| {
-        let cells = vec![
-            lf.id.to_string(),
-            lf.lifespan.to_string(),
-            lf.health.to_string(),
-            lf.hunger.to_string(),
-            lf.thirst.to_string(),
-            format!("({}, {})", lf.location.0, lf.location.1),
-        ];
-
-        if idx == (selected_lf_index as usize) {
-            return Row::new(cells).style(Style::default().add_modifier(Modifier::BOLD));
-        } else {
-            return Row::new(cells).style(Style::default());
-        }
-    });
-
-    let table = Table::new(rows)
-        .header(header)
-        .block(Block::default().borders(Borders::ALL).title("Stats"))
-        .widths(&[
-            Constraint::Length(3),
-            Constraint::Percentage(10),
-            Constraint::Percentage(15),
-            Constraint::Percentage(15),
-            Constraint::Percentage(15),
-            Constraint::Percentage(15),
-        ]);
-
-    f.render_widget(table, area);
-}
-
-fn draw_bottom_right<B>(f: &mut Frame<B>, selected_lf_index: i32, world: &World, area: Rect)
-where
+fn draw_single_lf_information<B>(
+    f: &mut Frame<B>,
+    selected_lf_index: i32,
+    world: &World,
+    area: Rect,
+) where
     B: Backend,
 {
     let chunks = Layout::default()
@@ -228,46 +230,19 @@ where
         .margin(0)
         .constraints(
             [
-                Constraint::Percentage(65),
                 Constraint::Min(17),
-                Constraint::Percentage(25),
+                Constraint::Min(35),
+                Constraint::Min(35),
+                Constraint::Percentage(100),
             ]
             .as_ref(),
         )
         .split(area);
 
-    draw_events(f, world, chunks[0]);
-    draw_lf_selection(f, selected_lf_index, world, chunks[1]);
-    draw_lf_info(f, selected_lf_index, world, chunks[2]);
-}
-
-fn draw_events<B>(f: &mut Frame<B>, world: &World, area: Rect)
-where
-    B: Backend,
-{
-    let mut items: Vec<ListItem> = vec![];
-
-    for (event_type, description) in &world.events {
-        let color = match event_type {
-            EventType::Death => Color::Blue,
-            EventType::Creation => Color::Cyan,
-            EventType::Mate => Color::Magenta,
-            EventType::Attack => Color::Red,
-            EventType::AsexuallyReproduce => Color::LightGreen,
-        };
-
-        items.insert(
-            0,
-            ListItem::new(Span::from(Span::styled(
-                description,
-                Style::default().fg(color),
-            ))),
-        );
-    }
-
-    let list = List::new(items).block(Block::default().title("Events").borders(Borders::ALL));
-
-    f.render_widget(list, area);
+    draw_lf_selection(f, selected_lf_index, world, chunks[0]);
+    draw_lf_input_neuron_values(f, selected_lf_index, world, chunks[1]);
+    draw_lf_output_neuron_values(f, selected_lf_index, world, chunks[2]);
+    draw_lf_neural_net(f, selected_lf_index, world, chunks[3]);
 }
 
 fn draw_lf_selection<B>(f: &mut Frame<B>, selected_lf_index: i32, world: &World, area: Rect)
@@ -301,8 +276,12 @@ where
     f.render_widget(list, area);
 }
 
-fn draw_lf_info<B>(f: &mut Frame<B>, selected_lf_index: i32, world: &World, area: Rect)
-where
+fn draw_lf_input_neuron_values<B>(
+    f: &mut Frame<B>,
+    selected_lf_index: i32,
+    world: &World,
+    area: Rect,
+) where
     B: Backend,
 {
     let mut items: Vec<ListItem> = vec![];
@@ -323,16 +302,182 @@ where
         )));
     }
 
-    // let probabilities = lf.run_neural_net(&nnh);
-    // for (idx, (neuron_type, prob)) in probabilities.iter().enumerate() {
-    //     items.push(ListItem::new(format!("{:?}: {}", neuron_type, prob)));
-    // }
-
     let list = List::new(items).block(
         Block::default()
-            .title("Input Neuron Values")
+            .title(format!("Input Neuron Values for {}", lf.id))
             .borders(Borders::ALL),
     );
+
+    f.render_widget(list, area);
+}
+
+fn draw_lf_output_neuron_values<B>(
+    f: &mut Frame<B>,
+    selected_lf_index: i32,
+    world: &World,
+    area: Rect,
+) where
+    B: Backend,
+{
+
+    let lf_opt = world.lifeforms.values().nth(selected_lf_index as usize);
+    let lf: &LifeForm;
+
+    if let None = lf_opt {
+        return;
+    } else {
+        lf = lf_opt.unwrap();
+    }
+
+    let values: &Vec<(OutputNeuronType, f32)>;
+
+    if let None = lf.most_recent_output_neuron_values {
+        return;
+    } else {
+        values = lf.most_recent_output_neuron_values.as_ref().unwrap();
+    }
+
+    let mut items: Vec<ListItem> = vec![];
+
+    for (neuron_type, value) in values.iter() {
+        items.push(ListItem::new(format!("{:?}: {}", neuron_type, value)));
+    }
+
+    let list = List::new(items).block(Block::default().title("Output Neuron Values").borders(Borders::ALL));
+
+    f.render_widget(list, area);
+}
+
+fn draw_lf_neural_net<B>(f: &mut Frame<B>, selected_lf_index: i32, world: &World, area: Rect)
+where
+    B: Backend,
+{
+    // TODO Take all this and just move it to the top and pass in the lifeform.
+    let lf_opt = world.lifeforms.values().nth(selected_lf_index as usize);
+    let lf: &LifeForm;
+
+    if let None = lf_opt {
+        return;
+    } else {
+        lf = lf_opt.unwrap();
+    }
+
+    // TODO This is gonna be friggin awesome
+    let neural_net_canvas = Canvas::default()
+        .block(Block::default().title("Neural Net").borders(Borders::ALL))
+        .x_bounds([0.0, area.width as f64])
+        .y_bounds([0.0, area.height as f64])
+        .paint(|ctx| {
+            ctx.print(
+                0.0 as f64,
+                lf.lifespan as f64 / 10.0,
+                Span::styled(
+                    format!("TODO LF {} Neural Net", lf.id),
+                    Style::default()
+                        .fg(Color::White)
+                        .bg(Color::Red)
+                        .add_modifier(Modifier::BOLD),
+                ),
+            );
+        });
+
+    f.render_widget(neural_net_canvas, area);
+}
+
+fn draw_top_right<B>(
+    f: &mut Frame<B>,
+    saved_tick_rate: u64,
+    iteration: usize,
+    world: &World,
+    area: Rect,
+) where
+    B: Backend,
+{
+    let chunks = Layout::default()
+        .direction(Direction::Horizontal)
+        .margin(0)
+        .constraints([Constraint::Percentage(35), Constraint::Percentage(65)].as_ref())
+        .split(area);
+
+    draw_world_information(f, saved_tick_rate, iteration, world, chunks[0]);
+    draw_events(f, world, chunks[1]);
+}
+
+fn draw_world_information<B>(
+    f: &mut Frame<B>,
+    saved_tick_rate: u64,
+    iteration: usize,
+    world: &World,
+    area: Rect,
+) where
+    B: Backend,
+{
+    // TODO
+    // * Dude the chart could be an amazing visualization for this, allowing us to see things
+    // like average age over time
+    // * Get oldest LF
+
+    let block = Block::default()
+        .borders(Borders::ALL)
+        .title("World Information");
+
+    let mut items: Vec<ListItem> = vec![];
+
+    items.push(
+        ListItem::new(format!(
+            "Info: tick rate: {}ms | iteration: {}",
+            saved_tick_rate, iteration
+        ))
+        .style(Style::default().fg(Color::Cyan)),
+    );
+
+    items.push(
+        ListItem::new(format!("LifeForms: {}", world.lifeforms.len()))
+            .style(Style::default().fg(Color::Green)),
+    );
+
+    let average_age: f32 = world
+        .lifeforms
+        .values()
+        .map(|lf| lf.lifespan as f32)
+        .sum::<f32>()
+        / world.lifeforms.len() as f32;
+
+    items.push(
+        ListItem::new(format!("Avergae Age: {}", average_age))
+            .style(Style::default().fg(Color::Green)),
+    );
+
+    let list = List::new(items).block(block);
+
+    f.render_widget(list, area);
+}
+
+fn draw_events<B>(f: &mut Frame<B>, world: &World, area: Rect)
+where
+    B: Backend,
+{
+    let mut items: Vec<ListItem> = vec![];
+
+    for (event_type, description) in &world.events {
+        let color = match event_type {
+            EventType::Death => Color::Blue,
+            EventType::Creation => Color::Cyan,
+            EventType::Mate => Color::Magenta,
+            EventType::Attack => Color::Red,
+            EventType::AsexuallyReproduce => Color::LightGreen,
+        };
+
+        items.insert(
+            0,
+            ListItem::new(Span::from(Span::styled(
+                description,
+                Style::default().fg(color),
+            ))),
+        );
+    }
+
+    let list = List::new(items).block(Block::default().title("Events").borders(Borders::ALL));
 
     f.render_widget(list, area);
 }

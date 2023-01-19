@@ -39,6 +39,9 @@ impl Evolver {
     /// Takes a mut ref to a genome and makes a slight mutation on the genome
     pub fn mutate(genome: &mut Genome, nnh: &NeuralNetHelper) {
         // First we just get one gene at random from the bunch
+        // TODO When this is called from world's ensure lifeform count, after a bunch
+        // of the lifeforms die at once, sometimes for some reason genome.genes.len()
+        // comes out to be zero, and this panics.
         let idx = thread_rng().gen_range(0..genome.genes.len());
         let mut gene = genome.genes.remove(idx);
 

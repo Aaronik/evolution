@@ -12,6 +12,9 @@ pub struct LifeForm {
     pub thirst: f32, // 0 - 1
     pub location: (usize, usize),
     pub lifespan: usize, // How many tics this one has lived for
+
+    /// This is for the UI, it can be safely removed if the draws change
+    pub most_recent_output_neuron_values: Option<Vec<(OutputNeuronType, f32)>>,
 }
 
 impl LifeForm {
@@ -34,10 +37,11 @@ impl LifeForm {
             thirst: 0.0,
             lifespan: 0,
             location: (id + 10, id + 10),
+            most_recent_output_neuron_values: None,
         }
     }
 
-    /// returns a list of probablities associated with output neuron types
+    /// returns a list of probabilities associated with output neuron types
     pub fn run_neural_net(&self, nnh: &NeuralNetHelper) -> Vec<(OutputNeuronType, f32)> {
         // neuron id, running sum
         let mut running_sums: HashMap<usize, f32> = HashMap::new();
