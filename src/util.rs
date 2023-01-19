@@ -182,6 +182,27 @@ mod tests {
     use super::*;
 
     #[test]
+    fn test_closest_to() {
+        let subject = (0, 0);
+        let objects = vec![(1,1), (2,2), (3,3)];
+
+        let loc = closest_to(&subject, &objects);
+        assert_eq!(objects[0], loc);
+
+        let subject = (5, 5);
+        let objects = vec![(1,1), (2,2), (3,3)];
+
+        let loc = closest_to(&subject, &objects);
+        assert_eq!(objects[2], loc);
+
+        let subject = (2, 2);
+        let objects = vec![(1,1), (2,2), (3,3)];
+
+        let loc = closest_to(&subject, &objects);
+        assert_eq!(objects[1], loc);
+    }
+
+    #[test]
     fn test_dist_rel() {
 
         let l1 = (0, 0);
