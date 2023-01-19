@@ -14,6 +14,14 @@ use tui::{
 
 use evolution::*;
 
+// TODO
+// * Start world with many waters,foods,hearts
+// * Remove random movement
+// * Removing mating
+// * Replae top stats thing with actual world stats, like num lifeforms, iterations, tick count
+// * Order the lifeform ids in the select screen
+// * Keep track of id, not index within the list of ids, so it's not always jumping around
+
 fn main() {
     // Size of the world
     let size = 50;
@@ -37,6 +45,14 @@ fn main() {
     };
 
     let mut world = World::new(world_props);
+    let mut iteration = 0;
+
+    // loop {
+    //     iteration += 1;
+    //     world.step();
+    //     println!("iteration, num lifeforms: {}, {}", iteration, world.lifeforms.len());
+    // }
+    // return;
 
     enable_raw_mode().unwrap();
     let mut stdout = io::stdout();
@@ -44,7 +60,6 @@ fn main() {
     let backend = CrosstermBackend::new(stdout);
     let mut terminal = Terminal::new(backend).unwrap();
 
-    let mut iteration = 0;
     let mut last_tick = Instant::now();
 
     // When we pause we greatly increase the tick rate to keep the loop from

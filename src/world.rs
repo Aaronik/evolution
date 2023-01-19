@@ -85,24 +85,15 @@ impl<'a> World<'a> {
 
         // Update resources
         if self.tics % self.props.food_density == 0 {
-            self.food.insert((
-                thread_rng().gen_range(0..self.props.size),
-                thread_rng().gen_range(0..self.props.size),
-            ));
+            self.generate_food();
         }
 
         if self.tics % self.props.water_density == 0 {
-            self.water.insert((
-                thread_rng().gen_range(0..self.props.size),
-                thread_rng().gen_range(0..self.props.size),
-            ));
+            self.generate_water();
         }
 
         if self.tics % self.props.heals_density == 0 {
-            self.heals.insert((
-                thread_rng().gen_range(0..self.props.size),
-                thread_rng().gen_range(0..self.props.size),
-            ));
+            self.generate_heals();
         }
 
         self.update_inputs();
@@ -175,16 +166,19 @@ impl<'a> World<'a> {
                 Evolver::mutate(&mut genome, self.props.neural_net_helper)
             }
 
-            self.lifeforms.insert(id, LifeForm {
+            self.lifeforms.insert(
                 id,
-                genome,
-                health: 1.0,
-                hunger: 0.0,
-                thirst: 0.0,
-                location: info.0,
-                lifespan: 0,
-                neural_net: self.props.neural_net_helper.spawn(),
-            });
+                LifeForm {
+                    id,
+                    genome,
+                    health: 1.0,
+                    hunger: 0.0,
+                    thirst: 0.0,
+                    location: info.0,
+                    lifespan: 0,
+                    neural_net: self.props.neural_net_helper.spawn(),
+                },
+            );
         }
 
         // Run the neural net calculations. Uses rayon's par_iter() to parallelise the calculations
@@ -192,12 +186,7 @@ impl<'a> World<'a> {
         let all_output_neuron_probabilities: Vec<(usize, Vec<(OutputNeuronType, f32)>)> = self
             .lifeforms
             .par_iter()
-            .map(|(lf_id, lf)| {
-                (
-                    *lf_id,
-                    lf.run_neural_net(&self.props.neural_net_helper),
-                )
-            })
+            .map(|(lf_id, lf)| (*lf_id, lf.run_neural_net(&self.props.neural_net_helper)))
             .collect();
 
         for (lf_id, output_neuron_probabilities) in all_output_neuron_probabilities {
@@ -205,6 +194,25 @@ impl<'a> World<'a> {
         }
 
         self.ensure_lifeform_count();
+    }
+
+    fn generate_food(&mut self) {
+        self.food.insert(self.random_loc());
+    }
+
+    fn generate_water(&mut self) {
+        self.water.insert(self.random_loc());
+    }
+
+    fn generate_heals(&mut self) {
+        self.heals.insert(self.random_loc());
+    }
+
+    fn random_loc(&self) -> (usize, usize) {
+        (
+            thread_rng().gen_range(0..self.props.size),
+            thread_rng().gen_range(0..self.props.size),
+        )
     }
 
     /// Keep a minimum number of lifeforms on the board. If there are none,
@@ -302,7 +310,7 @@ impl<'a> World<'a> {
         let other_lf_ids_at_loc =
             self.other_lf_ids_at_location(*lf_id, &self.lifeforms[lf_id].location);
 
-        let mut lfs_to_mate_with: Vec<usize> = vec![];
+        // let mut lfs_to_mate_with: Vec<usize> = vec![];
         let mut lfs_to_attack: Vec<usize> = vec![];
 
         {
@@ -323,61 +331,57 @@ impl<'a> World<'a> {
                     OutputNeuronType::MoveDown => loc.1 = usize::min(loc.1 + 1, size),
                     OutputNeuronType::MoveLeft if loc.0 == 0 => (),
                     OutputNeuronType::MoveLeft => loc.0 -= 1,
-                    OutputNeuronType::MoveRandom => randomize(size, loc),
                     OutputNeuronType::Attack => other_lf_ids_at_loc
                         .iter()
                         .for_each(|id| lfs_to_attack.push(*id)),
-                    OutputNeuronType::Mate => other_lf_ids_at_loc
-                        .iter()
-                        .for_each(|id| lfs_to_mate_with.push(*id)),
                 }
             }
         }
 
-        for other_id in lfs_to_mate_with {
-            for _ in 0..2 {
-                let available_id = self.available_lifeform_id();
-                let location = self.lifeforms[lf_id].location;
-                let g1 = &self.lifeforms[lf_id].genome;
-                let g2 = &self.lifeforms[&other_id].genome;
-                let mut genome = Evolver::mate(&g1, &g2, &self.props.neural_net_helper);
-                if Evolver::should_mutate(self.props.mutation_rate) {
-                    Evolver::mutate(&mut genome, &self.props.neural_net_helper);
-                }
+        // for other_id in lfs_to_mate_with {
+        //     for _ in 0..2 {
+        //         let available_id = self.available_lifeform_id();
+        //         let location = self.lifeforms[lf_id].location;
+        //         let g1 = &self.lifeforms[lf_id].genome;
+        //         let g2 = &self.lifeforms[&other_id].genome;
+        //         let mut genome = Evolver::mate(&g1, &g2, &self.props.neural_net_helper);
+        //         if Evolver::should_mutate(self.props.mutation_rate) {
+        //             Evolver::mutate(&mut genome, &self.props.neural_net_helper);
+        //         }
 
-                self.lifeforms.entry(*lf_id).and_modify(|lf| {
-                    lf.hunger += 0.5;
-                    lf.thirst += 0.5;
-                    lf.health += 0.5;
-                });
+        //         self.lifeforms.entry(*lf_id).and_modify(|lf| {
+        //             lf.hunger += 0.5;
+        //             lf.thirst += 0.5;
+        //             lf.health += 0.5;
+        //         });
 
-                self.lifeforms.entry(other_id).and_modify(|lf| {
-                    lf.hunger += 0.5;
-                    lf.thirst += 0.5;
-                    lf.health += 0.5;
-                });
+        //         self.lifeforms.entry(other_id).and_modify(|lf| {
+        //             lf.hunger += 0.5;
+        //             lf.thirst += 0.5;
+        //             lf.health += 0.5;
+        //         });
 
-                let new_lf = LifeForm {
-                    id: available_id,
-                    genome,
-                    health: 1.0,
-                    hunger: 0.0,
-                    thirst: 0.0,
-                    lifespan: 0,
-                    location,
-                    neural_net: self.props.neural_net_helper.spawn(),
-                };
+        //         let new_lf = LifeForm {
+        //             id: available_id,
+        //             genome,
+        //             health: 1.0,
+        //             hunger: 0.0,
+        //             thirst: 0.0,
+        //             lifespan: 0,
+        //             location,
+        //             neural_net: self.props.neural_net_helper.spawn(),
+        //         };
 
-                self.events.push((
-                    EventType::Mate,
-                    String::from(format!(
-                        "=> New lifeform {} was birthed from {lf_id} and {other_id}",
-                        &new_lf.id
-                    )),
-                ));
-                self.lifeforms.insert(new_lf.id, new_lf);
-            }
-        }
+        //         self.events.push((
+        //             EventType::Mate,
+        //             String::from(format!(
+        //                 "=> New lifeform {} was birthed from {lf_id} and {other_id}",
+        //                 &new_lf.id
+        //             )),
+        //         ));
+        //         self.lifeforms.insert(new_lf.id, new_lf);
+        //     }
+        // }
 
         for other_id in lfs_to_attack {
             self.lifeforms.entry(*lf_id).and_modify(|lf| {
