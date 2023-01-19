@@ -107,14 +107,6 @@ impl<'a> World<'a> {
 
         self.update_inputs();
 
-        // In order to prevent data races, we clone each lifeform and loop
-        // over that set, which allows us to call other methods that reference our lifeforms
-        // hashmap.
-        let mut lfs: Vec<LifeForm> = vec![];
-        for lf in self.lifeforms.values_mut() {
-            lfs.push(lf.clone());
-        }
-
         // To avoid interior mutability, this keeps track of which lifeforms
         // are marked as deceased and will be removed after the mutable loop.
         let mut has_died: Vec<usize> = vec![];
@@ -177,7 +169,7 @@ impl<'a> World<'a> {
 
         for info in has_split {
             let id = self.available_lifeform_id();
-            let mut genome = info.1.clone();
+            let mut genome = info.1;
 
             if Evolver::should_mutate(self.props.mutation_rate) {
                 Evolver::mutate(&mut genome, self.props.neural_net_helper)
@@ -189,7 +181,7 @@ impl<'a> World<'a> {
                 health: 1.0,
                 hunger: 0.0,
                 thirst: 0.0,
-                location: info.0.clone(),
+                location: info.0,
                 lifespan: 0,
                 neural_net: self.props.neural_net_helper.spawn(),
             });
@@ -202,7 +194,7 @@ impl<'a> World<'a> {
             .par_iter()
             .map(|(lf_id, lf)| {
                 (
-                    lf_id.clone(),
+                    *lf_id,
                     lf.run_neural_net(&self.props.neural_net_helper),
                 )
             })
@@ -334,10 +326,10 @@ impl<'a> World<'a> {
                     OutputNeuronType::MoveRandom => randomize(size, loc),
                     OutputNeuronType::Attack => other_lf_ids_at_loc
                         .iter()
-                        .for_each(|id| lfs_to_attack.push(id.clone())),
+                        .for_each(|id| lfs_to_attack.push(*id)),
                     OutputNeuronType::Mate => other_lf_ids_at_loc
                         .iter()
-                        .for_each(|id| lfs_to_mate_with.push(id.clone())),
+                        .for_each(|id| lfs_to_mate_with.push(*id)),
                 }
             }
         }
@@ -506,7 +498,7 @@ impl<'a> World<'a> {
         // locations
         for lf in self.lifeforms.values() {
             if &lf.location == location && lf.id != id {
-                lf_ids.push(lf.id.clone());
+                lf_ids.push(lf.id);
             }
         }
 

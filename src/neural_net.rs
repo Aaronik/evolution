@@ -14,8 +14,6 @@ pub struct NeuralNetHelper {
     pub output_neurons: HashMap<usize, (OutputNeuronType, OutputNeuron)>,
 
     neuron_type_map: HashMap<usize, NeuronType>,
-    input_inner_neuron_ids: Vec<usize>,
-    inner_output_neuron_ids: Vec<usize>,
 }
 
 impl NeuralNetHelper {
@@ -52,22 +50,11 @@ impl NeuralNetHelper {
 
         // -- Generate Neuron Ids
 
-        let input_neuron_ids: Vec<usize> = input_neurons.keys().map(|k| *k).collect();
-        let inner_neuron_ids: Vec<usize> = inner_neurons.keys().map(|k| *k).collect();
-        let output_neuron_ids: Vec<usize> = output_neurons.keys().map(|k| *k).collect();
-
-        let mut input_inner_neuron_ids: Vec<usize> = input_neuron_ids.clone();
-        input_inner_neuron_ids.append(&mut inner_neuron_ids.clone());
-        let mut inner_output_neuron_ids: Vec<usize> = inner_neuron_ids.clone();
-        inner_output_neuron_ids.append(&mut output_neuron_ids.clone());
-
         Self {
             input_neurons,
             output_neurons,
             inner_neurons,
             neuron_type_map,
-            input_inner_neuron_ids,
-            inner_output_neuron_ids,
         }
     }
 
@@ -84,15 +71,29 @@ impl NeuralNetHelper {
     /// Returns a neuron id randomly chosen from input neurons unioned with inner neurons.
     /// This is all the places where a gene can start from.
     pub fn random_from_neuron(&self) -> usize {
-        let idx = thread_rng().gen_range(0..self.input_inner_neuron_ids.len());
-        self.input_inner_neuron_ids[idx].clone()
+        let num_neurons = self.input_neurons.len() + self.inner_neurons.len();
+        let idx = thread_rng().gen_range(0..num_neurons);
+
+        if idx < self.input_neurons.len() {
+            *self.input_neurons.keys().nth(idx).unwrap()
+        } else {
+            let index = idx - self.input_neurons.len();
+            *self.inner_neurons.keys().nth(index).unwrap()
+        }
     }
 
     /// Returns a neuron id randomly chosen from inner neurons unioned with output neurons.
     /// This is all the places where a gene can end, aka go to.
     pub fn random_to_neuron(&self) -> usize {
-        let idx = thread_rng().gen_range(0..self.inner_output_neuron_ids.len());
-        self.inner_output_neuron_ids[idx].clone()
+        let num_neurons = self.inner_neurons.len() + self.output_neurons.len();
+        let idx = thread_rng().gen_range(0..num_neurons);
+
+        if idx < self.inner_neurons.len() {
+            *self.inner_neurons.keys().nth(idx).unwrap()
+        } else {
+            let index = idx - self.inner_neurons.len();
+            *self.output_neurons.keys().nth(index).unwrap()
+        }
     }
 
     pub fn neuron_type(&self, neuron_id: &usize) -> &NeuronType {

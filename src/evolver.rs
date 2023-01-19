@@ -36,7 +36,7 @@ impl Evolver {
         thread_rng().gen_bool(mutation_rate as f64)
     }
 
-    /// Takes a genome, makes a clone of it with a slight mutation, returns that
+    /// Takes a mut ref to a genome and makes a slight mutation on the genome
     pub fn mutate(genome: &mut Genome, nnh: &NeuralNetHelper) {
         // First we just get one gene at random from the bunch
         let idx = thread_rng().gen_range(0..genome.genes.len());
