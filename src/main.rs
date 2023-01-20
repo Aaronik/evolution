@@ -14,11 +14,7 @@ use evolution::*;
 
 // TODO
 // * Start world with many waters,foods,hearts
-// * Remove random movement
-// * Removing mating
-// * Replae top stats thing with actual world stats, like num lifeforms, iterations, tick count
 // * Order the lifeform ids in the select screen
-// * Keep track of id, not index within the list of ids, so it's not always jumping around
 // * Get timestamps for events
 // * Ok, we don't really need water or hearts, we really just need FOOD. A LF will slowly lose
 // health until it eats, and then its health will come up by a certain amount. Health is lost
@@ -26,8 +22,7 @@ use evolution::*;
 // to get at the right balances. If a LF has surpassed a certain amount of fullness when it eats
 // then it splits!
 // * The danger should move around!
-// * Make rel distance go fro -1 to 10 (more sensitivity)
-// * Consider having a direction and being able to turn, but not just move left and right
+// * Make rel distance go fro -1 to 1 (more sensitivity)
 // * Let food be a thing that, after it gets a certain age, itself splits into multiple of it. That
 //   way it's like plants, getting energy from the ambient system.
 // * Let lifeforms know when they're up against the edge (ie. distance to edge, either distance to
@@ -68,7 +63,7 @@ fn main() {
     // When we pause we greatly increase the tick rate to keep the loop from
     // cooking the CPUs. This is where we store the value to go back to.
     // Note we mutate this to adjust tick rate.
-    let mut saved_tick_rate = 500;
+    let mut saved_tick_rate = 0;
 
     // Will be adjusted within the loop as well
     let mut paused = false;

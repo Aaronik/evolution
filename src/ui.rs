@@ -215,13 +215,6 @@ fn draw_right<B>(
     draw_single_lf_information(f, selected_lf, world, chunks[1]);
 }
 
-// TODO UI update, top right panel
-// Select
-// Graphs of health, thirst, hunger
-// Input neuron values
-// Output neuron values
-// Reach: I'd LOVE to see the neural net somehow
-
 fn draw_single_lf_information<B>(
     f: &mut Frame<B>,
     selected_lf: Option<&LifeForm>,

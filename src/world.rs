@@ -64,7 +64,6 @@ impl<'a> World<'a> {
         let water = HashSet::new();
         let heals = HashSet::new();
         let danger = HashSet::from([(0, 0)]); // TODO make random, take variable amount
-                                              // TODO Add a health booster
 
         Self {
             props,
@@ -193,7 +192,9 @@ impl<'a> World<'a> {
 
         for (lf_id, output_neuron_values) in all_output_neuron_values {
             self.process_output_neuron_values(&lf_id, &output_neuron_values);
-            self.lifeforms.entry(lf_id).and_modify(|lf| lf.most_recent_output_neuron_values = Some(output_neuron_values));
+            self.lifeforms
+                .entry(lf_id)
+                .and_modify(|lf| lf.most_recent_output_neuron_values = Some(output_neuron_values));
         }
 
         self.ensure_lifeform_count();
@@ -251,8 +252,11 @@ impl<'a> World<'a> {
         for _ in 0..3 {
             let most_fit_lf = self.most_fit_lifeform();
             let mut genome = most_fit_lf.genome.clone();
-            let location = most_fit_lf.location.clone();
+            if genome.genes.len() == 0 {
+                panic!("genome: {:?}", genome);
+            }
             Evolver::mutate(&mut genome, &self.props.neural_net_helper);
+            let location = most_fit_lf.location.clone();
 
             let lf = LifeForm {
                 id: self.available_lifeform_id(),
@@ -320,7 +324,7 @@ impl<'a> World<'a> {
 
         {
             let lf = self.lifeforms.get_mut(lf_id).unwrap();
-            let mut loc = &mut lf.location; // TODO
+            let mut loc = &mut lf.location;
             let size = self.props.size;
 
             for (neuron_type, value) in values {
@@ -329,12 +333,12 @@ impl<'a> World<'a> {
                     return;
                 }
 
-                // TODO I've gotta find a better way to update the location at MoveForward.
-                // Maybe it's a util method, maybe lf.location becomes a struct
                 match neuron_type {
                     OutputNeuronType::TurnLeft => lf.orientation.turn_left(),
                     OutputNeuronType::TurnRight => lf.orientation.turn_right(),
-                    OutputNeuronType::MoveForward => update_location(size, &mut loc, &lf.orientation.get_forward_modifier()),
+                    OutputNeuronType::MoveForward => {
+                        update_location(size, &mut loc, &lf.orientation.get_forward_modifier())
+                    }
                     OutputNeuronType::Attack => other_lf_ids_at_loc
                         .iter()
                         .for_each(|id| lfs_to_attack.push(*id)),
@@ -342,6 +346,8 @@ impl<'a> World<'a> {
             }
         }
 
+        // I'm just not totally sure if I want to completely remove mating. I might want to bring
+        // it back so I'm going to leave this here.
         // for other_id in lfs_to_mate_with {
         //     for _ in 0..2 {
         //         let available_id = self.available_lifeform_id();

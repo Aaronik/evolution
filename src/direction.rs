@@ -1,6 +1,6 @@
 use strum_macros::EnumIter;
 
-// TODO I'm wanting direction to do two things:
+// Direction needs to do two things:
 // * First, it needs to allow easy conversion from one direc to a neighbor
 // * Second, it should contain the values that can be added to the lf's location in the MoveForward
 // case.
@@ -67,10 +67,4 @@ pub enum DirectionName {
     SouthWest = 5,
     West = 6,
     NorthWest = 7,
-}
-
-impl DirectionName {
-    pub fn turn_left(&mut self) {
-
-    }
 }

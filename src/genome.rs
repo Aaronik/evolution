@@ -88,8 +88,6 @@ impl Genome {
 
 }
 
-// TODO Test ensure regenerating ordered_genes has the same thing each time
-
 /// Takes a vector of unique genes, returns a vector of indices of those genes in the correct order
 /// to walk them to do the neural net calculation. Going from one end of the returned vector to
 /// the other adding the sums of the neurons for the genes already seen and taking the tanh of
@@ -154,4 +152,24 @@ fn compute_ordered_gene_indices(genes: &Vec<Gene>, nnh: &NeuralNetHelper) -> Vec
     }
 
     ordered_gene_indices
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn makes_stable_ordered_genes() {
+        let nnh = NeuralNetHelper::new(0);
+
+        let g1 = Genome::new(GenomeProps {
+            neural_net_helper: &nnh,
+            size: 10,
+        });
+
+        let mut g2 = g1.clone();
+        g2.recompute_ordered_gene_indices(&nnh);
+
+        assert_eq!(g1.ordered_gene_indices, g2.ordered_gene_indices);
+    }
 }
