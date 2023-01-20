@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use rand::{thread_rng, Rng};
 use strum::IntoEnumIterator;
-use strum_macros::EnumIter;
+use strum_macros::{EnumIter, Display};
 
 /// Builds AND houses data structures that help for speedy neural net related calculations
 /// Meant to be a singleton that itself builds neural nets and houses these helpers.
@@ -108,7 +108,7 @@ pub struct NeuralNet {
     pub output_neurons: HashMap<usize, (OutputNeuronType, OutputNeuron)>,
 }
 
-#[derive(Debug, EnumIter, Clone)]
+#[derive(Debug, EnumIter, Clone, Display)]
 pub enum InputNeuronType {
     DirectionToFood,
     DistanceToFood,
@@ -139,7 +139,7 @@ pub struct InputNeuron {
     pub value: f32,
 }
 
-#[derive(Debug, EnumIter, Clone)]
+#[derive(Debug, EnumIter, Clone, Display)]
 pub enum OutputNeuronType {
     TurnLeft,
     TurnRight,

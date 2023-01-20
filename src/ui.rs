@@ -5,7 +5,10 @@ use tui::{
     layout::{Constraint, Direction, Layout, Rect},
     style::{Color, Modifier, Style},
     text::{Span, Spans},
-    widgets::{canvas::Canvas, Block, Borders, List, ListItem, Paragraph},
+    widgets::{
+        canvas::{Canvas, Line},
+        Block, Borders, List, ListItem, Paragraph,
+    },
     Frame,
 };
 
@@ -72,7 +75,6 @@ fn draw_world<B>(
 ) where
     B: Backend,
 {
-
     let world_canvas = Canvas::default()
         .block(Block::default().title("World").borders(Borders::ALL))
         .x_bounds([0.0, size as f64])
@@ -277,11 +279,8 @@ where
     f.render_widget(list, area);
 }
 
-fn draw_lf_input_neuron_values<B>(
-    f: &mut Frame<B>,
-    selected_lf: Option<&LifeForm>,
-    area: Rect,
-) where
+fn draw_lf_input_neuron_values<B>(f: &mut Frame<B>, selected_lf: Option<&LifeForm>, area: Rect)
+where
     B: Backend,
 {
     if let None = selected_lf {
@@ -309,11 +308,8 @@ fn draw_lf_input_neuron_values<B>(
     f.render_widget(list, area);
 }
 
-fn draw_lf_output_neuron_values<B>(
-    f: &mut Frame<B>,
-    selected_lf: Option<&LifeForm>,
-    area: Rect,
-) where
+fn draw_lf_output_neuron_values<B>(f: &mut Frame<B>, selected_lf: Option<&LifeForm>, area: Rect)
+where
     B: Backend,
 {
     if let None = selected_lf {
@@ -347,34 +343,53 @@ fn draw_lf_output_neuron_values<B>(
     f.render_widget(list, area);
 }
 
-fn draw_lf_neural_net<B>(
-    f: &mut Frame<B>,
-    selected_lf: Option<&LifeForm>,
-    area: Rect,
-) where
+fn draw_lf_neural_net<B>(f: &mut Frame<B>, selected_lf: Option<&LifeForm>, area: Rect)
+where
     B: Backend,
 {
     if let None = selected_lf {
         return;
     }
 
+    let lf = selected_lf.unwrap();
+
     // TODO This is gonna be friggin awesome
+    // Only hard part is in representing neuron that connections to itself and two neurons that
+    // connect back to each other.
+    // Maybe to do Canvas' Points: https://docs.rs/tui/latest/tui/widgets/canvas/struct.Points.html
+    // Good inf in here: https://docs.rs/tui/latest/src/tui/widgets/canvas/line.rs.html#16-57
+
+    // TODO Get this outside of here and reassign to it instead of recreating a new one each time
+    let neuron_locs = generate_neuron_hashmap(&lf.neural_net, &area);
+
+    // Then for each genome, draw a line from each gene.from to gene.to
+    // If it's a self reference... need a loop arrow, or just 3/4 or 4/5 of a circle
     let neural_net_canvas = Canvas::default()
         .block(Block::default().title("Neural Net").borders(Borders::ALL))
         .x_bounds([0.0, area.width as f64])
         .y_bounds([0.0, area.height as f64])
         .paint(|ctx| {
-            ctx.print(
-                0.0 as f64,
-                selected_lf.unwrap().lifespan as f64 / 10.0,
-                Span::styled(
-                    format!("TODO LF {} Neural Net", selected_lf.unwrap().id),
-                    Style::default()
-                        .fg(Color::White)
-                        .bg(Color::Red)
-                        .add_modifier(Modifier::BOLD),
-                ),
-            );
+            // TODO I want to represent the weight AND the activity as well
+            // There's an expressive greyscale here.
+            // All connections could be in dark grey, then heavier ones could lighten?
+            for (idx, gene) in lf.genome.genes.iter().enumerate() {
+                let from = neuron_locs[&gene.from].1;
+                let to = neuron_locs[&gene.to].1;
+                ctx.draw(&Line {
+                    x1: from.0,
+                    y1: from.1,
+                    x2: to.0,
+                    y2: to.1,
+                    color: Color::Rgb((idx * 10) as u8, (idx * 10) as u8, (idx * 10) as u8)
+                    // color: Color::Yellow,
+                });
+                ctx.layer();
+            }
+
+            for (name, loc) in neuron_locs.values() {
+                let x = (loc.0 - (name.len() / 2) as f64) + 1.0;
+                ctx.print(x, loc.1, String::from(name))
+            }
         });
 
     f.render_widget(neural_net_canvas, area);
@@ -394,12 +409,8 @@ where
     draw_events(f, world, chunks[1]);
 }
 
-fn draw_world_information<B>(
-    f: &mut Frame<B>,
-    tick_rate: u64,
-    world: &World,
-    area: Rect,
-) where
+fn draw_world_information<B>(f: &mut Frame<B>, tick_rate: u64, world: &World, area: Rect)
+where
     B: Backend,
 {
     // TODO
@@ -470,4 +481,66 @@ where
     let list = List::new(items).block(Block::default().title("Events").borders(Borders::ALL));
 
     f.render_widget(list, area);
+}
+
+/// Construct a hashmap of neuron_id => neuron location, used for drawing the neural net
+fn generate_neuron_hashmap(
+    neural_net: &NeuralNet,
+    area: &Rect,
+) -> HashMap<usize, (String, (f64, f64))> {
+    let max_names_per_line = 7;
+
+    // TODO Ok for all of three of these, gotta make it so there's a max of 7 per line, then
+    // it moves onto a different line. So this *_spacing idea will be rethought.
+
+    let input_neuron_spacing = area.width as f64 / (neural_net.input_neurons.len() + 1) as f64;
+    let inner_neuron_spacing = area.width as f64 / (neural_net.inner_neurons.len() + 1) as f64;
+    let output_neuron_spacing = area.width as f64 / (neural_net.output_neurons.len() + 1) as f64;
+
+    let input_neuron_row = 1;
+    let inner_neuron_row = (area.height / 2) + 2;
+    let output_neuron_row = area.height - 1;
+
+    let mut neuron_location_map = HashMap::new();
+
+    for (idx, (neuron_type, neuron)) in neural_net.input_neurons.values().enumerate() {
+        neuron_location_map.insert(
+            neuron.id,
+            (
+                format!("{}", neuron_type),
+                (
+                    (idx + 1) as f64 * input_neuron_spacing,
+                    input_neuron_row as f64,
+                ),
+            ),
+        );
+    }
+
+    for (idx, neuron) in neural_net.inner_neurons.values().enumerate() {
+        neuron_location_map.insert(
+            neuron.id,
+            (
+                String::from("InnerNeuron"),
+                (
+                    (idx + 1) as f64 * inner_neuron_spacing,
+                    inner_neuron_row as f64,
+                ),
+            ),
+        );
+    }
+
+    for (idx, (neuron_type, neuron)) in neural_net.output_neurons.values().enumerate() {
+        neuron_location_map.insert(
+            neuron.id,
+            (
+                format!("{}", neuron_type),
+                (
+                    (idx + 1) as f64 * output_neuron_spacing,
+                    output_neuron_row as f64,
+                ),
+            ),
+        );
+    }
+
+    neuron_location_map
 }
