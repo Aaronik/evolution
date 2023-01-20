@@ -430,6 +430,7 @@ impl<'a> World<'a> {
                 &self.danger.iter().map(|loc| *loc).collect(),
             );
             let loc = &lifeform.location;
+            let orm = &lifeform.orientation.get_forward_modifier();
 
             let (num_in_vicinity, closest_lf_health, closest_lf_loc, closest_lf_distance) =
                 close_lifeform_info_from_info_vec(
@@ -441,27 +442,27 @@ impl<'a> World<'a> {
 
             for (_nid, (neuron_type, neuron)) in lifeform.neural_net.input_neurons.iter_mut() {
                 neuron.value = match neuron_type {
-                    InputNeuronType::DirectionToFood => direc(loc, closest_food),
-                    InputNeuronType::DistanceToFood => dist_rel(size, loc, closest_food),
-                    InputNeuronType::DirectionToWater => direc(loc, closest_wat),
-                    InputNeuronType::DistanceToWater => dist_rel(size, loc, closest_wat),
-                    InputNeuronType::DirectionToHeal => direc(loc, closest_heal),
-                    InputNeuronType::DistanceToHeal => dist_rel(size, loc, closest_heal),
-                    InputNeuronType::DirectionToDanger => direc(loc, closest_dang),
-                    InputNeuronType::DistanceToDanger => dist_rel(size, loc, closest_dang),
-                    InputNeuronType::DirectionToHealthiestLF => direc(loc, &hlthst_lf_loc),
-                    InputNeuronType::DistanceToHealthiestLF => dist_rel(size, loc, &hlthst_lf_loc),
-                    InputNeuronType::HealthiestLFHealth => hlthst_lf_health,
-                    InputNeuronType::DirectionToClosestLF => direc(loc, &closest_lf_loc),
-                    InputNeuronType::DistanceToClosestLF => closest_lf_distance,
-                    InputNeuronType::ClosestLFHealth => closest_lf_health,
+                    InputNeuronType::Random => thread_rng().gen_range(0.0..=1.0),
+                    InputNeuronType::Oscillator => self.oscillator,
                     InputNeuronType::Health => lifeform.health,
                     InputNeuronType::Hunger => lifeform.hunger,
                     InputNeuronType::Thirst => lifeform.thirst,
                     InputNeuronType::PopulationDensity => num_lifeforms as f32 / size.pow(2) as f32,
                     InputNeuronType::NeighborhoodDensity => (num_in_vicinity / 8) as f32,
-                    InputNeuronType::Random => thread_rng().gen_range(0.0..=1.0),
-                    InputNeuronType::Oscillator => self.oscillator,
+                    InputNeuronType::DirectionToFood => rel_dir(loc, orm, closest_food),
+                    InputNeuronType::DistanceToFood => dist_rel(size, loc, closest_food),
+                    InputNeuronType::DirectionToWater => rel_dir(loc, orm, closest_wat),
+                    InputNeuronType::DistanceToWater => dist_rel(size, loc, closest_wat),
+                    InputNeuronType::DirectionToHeal => rel_dir(loc, orm, closest_heal),
+                    InputNeuronType::DistanceToHeal => dist_rel(size, loc, closest_heal),
+                    InputNeuronType::DirectionToDanger => rel_dir(loc, orm, closest_dang),
+                    InputNeuronType::DistanceToDanger => dist_rel(size, loc, closest_dang),
+                    InputNeuronType::DirectionToHealthiestLF => rel_dir(loc, orm, &hlthst_lf_loc),
+                    InputNeuronType::DistanceToHealthiestLF => dist_rel(size, loc, &hlthst_lf_loc),
+                    InputNeuronType::HealthiestLFHealth => hlthst_lf_health,
+                    InputNeuronType::DirectionToClosestLF => rel_dir(loc, orm, &closest_lf_loc),
+                    InputNeuronType::DistanceToClosestLF => closest_lf_distance,
+                    InputNeuronType::ClosestLFHealth => closest_lf_health,
                 };
             }
         }

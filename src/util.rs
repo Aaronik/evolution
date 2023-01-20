@@ -92,17 +92,6 @@ pub fn dist_rel(world_size: usize, from: &(usize, usize), to: &(usize, usize)) -
     dist_abs(from, to) / farthest_possible
 }
 
-// /// Gives a direction relative to a location and an orientation. So if the thing is oriented directly
-// /// northwards, and the other_location given is due north of the self_location, this will return
-// /// straight ahead.
-// /// 1: straight ahead
-// pub fn relative_dir(
-//     self_location: &(usize, usize),
-//     orientation: &(i8, i8),
-//     other_location: &(usize, usize),
-// ) -> f32 {
-// }
-
 /// Returns
 /// 0.25 for north
 /// 0.50 for east
@@ -215,9 +204,127 @@ pub fn update_location(size: usize, loc: &mut (usize, usize), modifier: &(i8, i8
     loc.1 = yn as usize;
 }
 
+/// Gives a direction relative to a location and an orientation. So if the thing is oriented directly
+/// northwards, and the other_location given is due north of the self_location, this will return
+/// straight ahead.
+/// 0: straight ahead
+/// -0.5: due left
+/// 0.5: Due right
+/// 1: Straight back
+pub fn rel_dir(
+    self_location: &(usize, usize),
+    orientation: &(i8, i8),
+    other_location: &(usize, usize),
+) -> f32 {
+    // Gotta handle when it's the same point
+    if self_location == other_location {
+        return 0.0;
+    }
+
+    // self
+    let xs = self_location.0 as f32;
+    let ys = self_location.1 as f32;
+
+    // self plus orientation
+    let xsor = xs + orientation.0 as f32;
+    let ysor = ys + orientation.1 as f32;
+
+    // other
+    let xo = other_location.0 as f32;
+    let yo = other_location.1 as f32;
+
+    // Great formula from https://stackoverflow.com/a/31334882/2128027
+
+    // result = atan2(P3.y - P1.y, P3.x - P1.x) -
+    //          atan2(P2.y - P1.y, P2.x - P1.x);
+
+    // P1 is self, P2 is self plus or, P3 is other
+    // result = atan2(yo - ys, xo - xs) -
+    //          atan2(ysor - ys, xsor - xs);
+
+    let mut radians = (yo - ys).atan2(xo - xs) - (ysor - ys).atan2(xsor - xs);
+
+    // We don't care about obtuse angles, this translates them to their acute brethren
+    if radians > std::f32::consts::PI {
+        radians -= std::f32::consts::PI * 2.0;
+    } else if radians < -std::f32::consts::PI {
+        radians += std::f32::consts::PI * 2.0;
+    }
+
+    // Now convert to a unit digit
+    radians / std::f32::consts::PI
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn test_relative_dir() {
+
+        let self_location = (2, 2);
+        let orientation = (1, 1);
+        let other_location = (2, 2);
+
+        let dir = rel_dir(&self_location, &orientation, &other_location);
+        assert_eq!(dir, 0.0);
+
+        let self_location = (2, 2);
+        let orientation = (0, 1);
+        let other_location = (2, 3);
+
+        let dir = rel_dir(&self_location, &orientation, &other_location);
+        assert_eq!(dir, 0.0);
+
+        let self_location = (2, 2);
+        let orientation = (0, -1);
+        let other_location = (2, 3);
+
+        let dir = rel_dir(&self_location, &orientation, &other_location);
+        assert_eq!(dir, 1.0);
+
+        let self_location = (2, 2);
+        let orientation = (0, 1);
+        let other_location = (1, 1);
+
+        let dir = rel_dir(&self_location, &orientation, &other_location);
+        assert_eq!(dir, 0.75);
+
+        let self_location = (2, 2);
+        let orientation = (0, 1);
+        let other_location = (3, 1);
+
+        let dir = rel_dir(&self_location, &orientation, &other_location);
+        assert_eq!(dir, -0.75);
+
+        let self_location = (2, 2);
+        let orientation = (1, 1);
+        let other_location = (3, 3);
+
+        let dir = rel_dir(&self_location, &orientation, &other_location);
+        assert_eq!(dir, 0.0);
+
+        let self_location = (2, 2);
+        let orientation = (0, 1);
+        let other_location = (1, 2);
+
+        let dir = rel_dir(&self_location, &orientation, &other_location);
+        assert_eq!(dir, 0.5);
+
+        let self_location = (2, 2);
+        let orientation = (0, 1);
+        let other_location = (3, 2);
+
+        let dir = rel_dir(&self_location, &orientation, &other_location);
+        assert_eq!(dir, -0.5);
+
+        let self_location = (2, 2);
+        let orientation = (-1, 1);
+        let other_location = (1, 3);
+
+        let dir = rel_dir(&self_location, &orientation, &other_location);
+        assert_eq!(dir, 0.0);
+    }
 
     #[test]
     fn test_update_location() {
