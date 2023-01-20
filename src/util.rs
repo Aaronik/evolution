@@ -92,16 +92,24 @@ pub fn dist_rel(world_size: usize, from: &(usize, usize), to: &(usize, usize)) -
     dist_abs(from, to) / farthest_possible
 }
 
+// /// Gives a direction relative to a location and an orientation. So if the thing is oriented directly
+// /// northwards, and the other_location given is due north of the self_location, this will return
+// /// straight ahead.
+// /// 1: straight ahead
+// pub fn relative_dir(
+//     self_location: &(usize, usize),
+//     orientation: &(i8, i8),
+//     other_location: &(usize, usize),
+// ) -> f32 {
+// }
+
 /// Returns
 /// 0.25 for north
 /// 0.50 for east
 /// 0.75 for south
 /// 1.00 for west
 /// 0.00 for same point
-/// And assumes that the start point is in the upper left corner, like most terminals represent it
-/// as. Note that with tui-rs, the visual library used in this project, it actually represents the
-/// bottom left as (0, 0), just to throw a little confusion in there fer ya. So if x's are the same
-/// and the second y is bigger, then the second coordinate is BELOW the first.
+/// And assumes that the start point is in the bottom left corner.
 pub fn direc(from: &(usize, usize), to: &(usize, usize)) -> f32 {
     let x1 = from.0 as f32;
     let y1 = from.1 as f32;
@@ -177,26 +185,79 @@ pub fn randomize(size: usize, mut loc: &mut (usize, usize)) {
     }
 }
 
+/// Helper to abstract and test the math of movement, not being able to go over edges especially.
+pub fn update_location(size: usize, loc: &mut (usize, usize), modifier: &(i8, i8)) {
+    let xm = modifier.0 as isize;
+    let ym = modifier.1 as isize;
+    let x = loc.0 as isize;
+    let y = loc.1 as isize;
+
+    let mut xn = x + xm;
+    let mut yn = y + ym;
+
+    if xn < 0 {
+        xn = 0;
+    }
+
+    if xn > size as isize {
+        xn = size as isize;
+    }
+
+    if yn < 0 {
+        yn = 0;
+    }
+
+    if yn > size as isize {
+        yn = size as isize;
+    }
+
+    loc.0 = xn as usize;
+    loc.1 = yn as usize;
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
 
     #[test]
+    fn test_update_location() {
+        let mut loc = (5, 5);
+        update_location(100, &mut loc, &(0, 0));
+        assert_eq!(loc, (5, 5));
+
+        let mut loc = (5, 5);
+        update_location(100, &mut loc, &(1, 1));
+        assert_eq!(loc, (6, 6));
+
+        let mut loc = (1, 1);
+        update_location(100, &mut loc, &(-1, -1));
+        assert_eq!(loc, (0, 0));
+
+        let mut loc = (0, 0);
+        update_location(100, &mut loc, &(-1, -1));
+        assert_eq!(loc, (0, 0));
+
+        let mut loc = (1, 1);
+        update_location(1, &mut loc, &(1, 1));
+        assert_eq!(loc, (1, 1));
+    }
+
+    #[test]
     fn test_closest_to() {
         let subject = (0, 0);
-        let objects = vec![(1,1), (2,2), (3,3)];
+        let objects = vec![(1, 1), (2, 2), (3, 3)];
 
         let loc = closest_to(&subject, &objects);
         assert_eq!(objects[0], loc);
 
         let subject = (5, 5);
-        let objects = vec![(1,1), (2,2), (3,3)];
+        let objects = vec![(1, 1), (2, 2), (3, 3)];
 
         let loc = closest_to(&subject, &objects);
         assert_eq!(objects[2], loc);
 
         let subject = (2, 2);
-        let objects = vec![(1,1), (2,2), (3,3)];
+        let objects = vec![(1, 1), (2, 2), (3, 3)];
 
         let loc = closest_to(&subject, &objects);
         assert_eq!(objects[1], loc);
@@ -204,7 +265,6 @@ mod tests {
 
     #[test]
     fn test_dist_rel() {
-
         let l1 = (0, 0);
         let l2 = (0, 0);
         assert_eq!(dist_rel(10, &l1, &l2), 0.0);
@@ -228,12 +288,10 @@ mod tests {
         let l1 = (0, 10);
         let l2 = (10, 0);
         assert_eq!(dist_rel(10, &l1, &l2), 1.0);
-
     }
 
     #[test]
     fn test_dist_abs() {
-
         let l1 = (0, 0);
         let l2 = (0, 0);
         assert_eq!(dist_abs(&l1, &l2), 0.0);
@@ -273,7 +331,6 @@ mod tests {
         let l1 = (1, 0);
         let l2 = (0, 1);
         assert_eq!(dist_abs(&l1, &l2), (2.0 as f32).sqrt());
-
     }
 
     #[test]

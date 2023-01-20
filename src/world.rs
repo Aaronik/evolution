@@ -178,6 +178,7 @@ impl<'a> World<'a> {
                     lifespan: 0,
                     neural_net: self.props.neural_net_helper.spawn(),
                     most_recent_output_neuron_values: None,
+                    orientation: Direction::new(),
                 },
             );
         }
@@ -263,6 +264,7 @@ impl<'a> World<'a> {
                 lifespan: 0,
                 neural_net: self.props.neural_net_helper.spawn(),
                 most_recent_output_neuron_values: None,
+                orientation: Direction::new(),
             };
 
             self.events.push((
@@ -318,7 +320,7 @@ impl<'a> World<'a> {
 
         {
             let lf = self.lifeforms.get_mut(lf_id).unwrap();
-            let mut loc = &mut lf.location;
+            let mut loc = &mut lf.location; // TODO
             let size = self.props.size;
 
             for (neuron_type, value) in values {
@@ -327,13 +329,12 @@ impl<'a> World<'a> {
                     return;
                 }
 
+                // TODO I've gotta find a better way to update the location at MoveForward.
+                // Maybe it's a util method, maybe lf.location becomes a struct
                 match neuron_type {
-                    OutputNeuronType::MoveUp if loc.1 == 0 => (),
-                    OutputNeuronType::MoveUp => loc.1 -= 1,
-                    OutputNeuronType::MoveRight => loc.0 = usize::min(loc.0 + 1, size),
-                    OutputNeuronType::MoveDown => loc.1 = usize::min(loc.1 + 1, size),
-                    OutputNeuronType::MoveLeft if loc.0 == 0 => (),
-                    OutputNeuronType::MoveLeft => loc.0 -= 1,
+                    OutputNeuronType::TurnLeft => lf.orientation.turn_left(),
+                    OutputNeuronType::TurnRight => lf.orientation.turn_right(),
+                    OutputNeuronType::MoveForward => update_location(size, &mut loc, &lf.orientation.get_forward_modifier()),
                     OutputNeuronType::Attack => other_lf_ids_at_loc
                         .iter()
                         .for_each(|id| lfs_to_attack.push(*id)),

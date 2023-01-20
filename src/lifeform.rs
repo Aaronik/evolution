@@ -12,6 +12,7 @@ pub struct LifeForm {
     pub thirst: f32, // 0 - 1
     pub location: (usize, usize),
     pub lifespan: usize, // How many tics this one has lived for
+    pub orientation: Direction,
 
     /// This is for the UI, it can be safely removed if the draws change
     pub most_recent_output_neuron_values: Option<Vec<(OutputNeuronType, f32)>>,
@@ -38,6 +39,7 @@ impl LifeForm {
             lifespan: 0,
             location: (id + 10, id + 10),
             most_recent_output_neuron_values: None,
+            orientation: Direction::new(),
         }
     }
 

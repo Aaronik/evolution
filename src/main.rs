@@ -32,6 +32,8 @@ use evolution::*;
 // * Consider having a direction and being able to turn, but not just move left and right
 // * Let food be a thing that, after it gets a certain age, itself splits into multiple of it. That
 //   way it's like plants, getting energy from the ambient system.
+// * Let lifeforms know when they're up against the edge (ie. distance to edge, either distance to
+// every edge or better would be distance to edge _in front_ of the lf)
 
 fn main() {
     // Size of the world

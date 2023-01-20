@@ -74,14 +74,6 @@ fn draw_world<B>(
 ) where
     B: Backend,
 {
-    // Ideations on how to print the lifeforms once they have a direction
-    // Ô (circumplex), O̺ (combined inverted bridge below), Ό (with tonos), O҉ (cryllic millions sign), O҈ (cryllic hundred thousands sign)
-    // Oՙ (armenian half ring), O֑ (hebre etnahta), O֒ ,O֓ , O֔ , O֕ , ֕O, O֟, O֚   , O֛   O֣
-    // ↘҉  , ↗, ↙, ↖,
-    // Use arrows with the "combining cryllic millions sign (U+0489)", found here: https://www.fileformat.info/info/charset/UTF-8/list.htm?start=1024
-    // TRIANGLES: ▲, ◥, ▶, ◢, ▼, ◣, ◀, ◤,
-    //
-    // TRIANGLES: ▲҉, ◥҉, ▶҉, ◢҉, ▼҉, ◣҉, ◀҉, ◤҉,
 
     let world_canvas = Canvas::default()
         .block(Block::default().title("World").borders(Borders::ALL))
@@ -118,9 +110,28 @@ fn draw_world<B>(
                 *num_at_location.entry(lf.location).or_insert(0) += 1;
                 let num = num_at_location[&lf.location];
 
+                // Ideations on how to print the lifeforms once they have a direction
+                // Ô (circumplex), O̺ (combined inverted bridge below), Ό (with tonos), O҉ (cryllic millions sign), O҈ (cryllic hundred thousands sign)
+                // Oՙ (armenian half ring), O֑ (hebre etnahta), O֒ ,O֓ , O֔ , O֕ , ֕O, O֟, O֚   , O֛   O֣
+                // ↘҉  , ↗, ↙, ↖,
+                // Use arrows with the "combining cryllic millions sign (U+0489)", found here: https://www.fileformat.info/info/charset/UTF-8/list.htm?start=1024
+                // TRIANGLES: ▲, ◥, ▶, ◢, ▼, ◣, ◀, ◤,
+                //
+                // TRIANGLES: ▲҉, ◥҉, ▶҉, ◢҉, ▼҉, ◣҉, ◀҉, ◤҉,
+
+                let single_lf_char = match lf.orientation.name() {
+                    DirectionName::North => "▲",
+                    DirectionName::NorthEast => "◥",
+                    DirectionName::East => "▶",
+                    DirectionName::SouthEast => "◢",
+                    DirectionName::South => "▼",
+                    DirectionName::SouthWest => "◣",
+                    DirectionName::West => "◀",
+                    DirectionName::NorthWest => "◤",
+                };
+
                 let char = match num {
-                    1 if lf.health >= 0.5 => "☺ ",
-                    1 if lf.health < 0.5 => "☹ ",
+                    1 => single_lf_char,
                     2 => "2",
                     3 => "3",
                     4 => "4",

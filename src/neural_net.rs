@@ -141,10 +141,9 @@ pub struct InputNeuron {
 
 #[derive(Debug, EnumIter, Clone)]
 pub enum OutputNeuronType {
-    MoveUp,
-    MoveDown,
-    MoveRight,
-    MoveLeft,
+    TurnLeft,
+    TurnRight,
+    MoveForward,
     Attack,
 }
 
