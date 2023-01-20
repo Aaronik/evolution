@@ -15,7 +15,6 @@ pub fn ui<B>(
     f: &mut Frame<B>,
     size: usize,
     world: &World,
-    iteration: usize,
     selected_lf: Option<&LifeForm>,
     tick_rate: u64,
 ) where
@@ -27,7 +26,7 @@ pub fn ui<B>(
         .constraints([Constraint::Length(size as u16), Constraint::Min(20)].as_ref())
         .split(f.size());
 
-    draw_main(f, size, selected_lf, tick_rate, iteration, world, chunks[0]);
+    draw_main(f, size, selected_lf, tick_rate, world, chunks[0]);
     draw_controls(f, chunks[1]);
 }
 
@@ -36,7 +35,6 @@ fn draw_main<B>(
     size: usize,
     selected_lf: Option<&LifeForm>,
     tick_rate: u64,
-    iteration: usize,
     world: &World,
     area: Rect,
 ) where
@@ -49,7 +47,7 @@ fn draw_main<B>(
         .split(area);
 
     draw_world(f, size, selected_lf, world, chunks[0]);
-    draw_right(f, selected_lf, tick_rate, iteration, world, chunks[1]);
+    draw_right(f, selected_lf, tick_rate, world, chunks[1]);
 }
 
 fn draw_controls<B>(f: &mut Frame<B>, area: Rect)
@@ -202,7 +200,6 @@ fn draw_right<B>(
     f: &mut Frame<B>,
     selected_lf: Option<&LifeForm>,
     tick_rate: u64,
-    iteration: usize,
     world: &World,
     area: Rect,
 ) where
@@ -214,7 +211,7 @@ fn draw_right<B>(
         .constraints([Constraint::Percentage(50), Constraint::Percentage(50)].as_ref())
         .split(area);
 
-    draw_top_right(f, tick_rate, iteration, world, chunks[0]);
+    draw_top_right(f, tick_rate, world, chunks[0]);
     draw_single_lf_information(f, selected_lf, world, chunks[1]);
 }
 
@@ -390,7 +387,7 @@ fn draw_lf_neural_net<B>(
     f.render_widget(neural_net_canvas, area);
 }
 
-fn draw_top_right<B>(f: &mut Frame<B>, tick_rate: u64, iteration: usize, world: &World, area: Rect)
+fn draw_top_right<B>(f: &mut Frame<B>, tick_rate: u64, world: &World, area: Rect)
 where
     B: Backend,
 {
@@ -400,14 +397,13 @@ where
         .constraints([Constraint::Percentage(35), Constraint::Percentage(65)].as_ref())
         .split(area);
 
-    draw_world_information(f, tick_rate, iteration, world, chunks[0]);
+    draw_world_information(f, tick_rate, world, chunks[0]);
     draw_events(f, world, chunks[1]);
 }
 
 fn draw_world_information<B>(
     f: &mut Frame<B>,
     tick_rate: u64,
-    iteration: usize,
     world: &World,
     area: Rect,
 ) where
@@ -427,7 +423,7 @@ fn draw_world_information<B>(
     items.push(
         ListItem::new(format!(
             "Info: tick rate: {}ms | iteration: {}",
-            tick_rate, iteration
+            tick_rate, world.tics
         ))
         .style(Style::default().fg(Color::Cyan)),
     );

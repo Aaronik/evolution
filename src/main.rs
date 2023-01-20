@@ -58,14 +58,6 @@ fn main() {
     };
 
     let mut world = World::new(world_props);
-    let mut iteration = 0;
-
-    // loop {
-    //     iteration += 1;
-    //     world.step();
-    //     println!("iteration, num lifeforms: {}, {}", iteration, world.lifeforms.len());
-    // }
-    // return;
 
     enable_raw_mode().unwrap();
     let mut stdout = io::stdout();
@@ -133,10 +125,8 @@ fn main() {
 
         if last_tick.elapsed() >= tick_rate {
             world.step();
-            iteration += 1;
             last_tick = Instant::now();
         }
-
     }
 
     // restore terminal
@@ -149,4 +139,3 @@ fn main() {
     .unwrap();
     terminal.show_cursor().unwrap();
 }
-

@@ -32,7 +32,7 @@ pub struct World<'a> {
     pub danger: HashSet<(usize, usize)>,
     pub heals: HashSet<(usize, usize)>,
     oscillator: f32,
-    tics: usize,
+    pub tics: usize,
     pub events: Vec<(EventType, String)>,
 }
 
