@@ -39,9 +39,6 @@ impl Evolver {
     /// Takes a mut ref to a genome and makes a slight mutation on the genome
     pub fn mutate(genome: &mut Genome, nnh: &NeuralNetHelper) {
         // First we just get one gene at random from the bunch
-        // TODO When this is called from world's ensure lifeform count, after a bunch
-        // of the lifeforms die at once, sometimes for some reason genome.genes.len()
-        // comes out to be zero, and this panics.
         let idx = thread_rng().gen_range(0..genome.genes.len());
         let mut gene = genome.genes.remove(idx);
 
@@ -49,12 +46,15 @@ impl Evolver {
         let from_to_weight = thread_rng().gen_range(0..3);
 
         if from_to_weight == 0 {
+            // TODO Maybe we should nudge this weight rather than raplace it?
             gene.weight = Genome::random_weight();
         } else if from_to_weight == 1 {
             gene.from = nnh.random_from_neuron();
         } else {
             gene.to = nnh.random_to_neuron();
         }
+
+        genome.genes.push(gene);
 
         genome.recompute_ordered_gene_indices(nnh);
     }
@@ -102,27 +102,24 @@ mod test {
 
         let mut genome = Genome::new(GenomeProps {
             neural_net_helper: &nnh,
-            size: 1,
+            size: 5,
         });
 
         let before = genome.clone();
 
         Evolver::mutate(&mut genome, &nnh);
 
+        assert_eq!(before.genes.len(), genome.genes.len());
+
         let mut has_diff_gene = false;
 
-        // If they're not the same size, it was definitely updated.
-        if before.ordered_gene_indices.len() != genome.ordered_gene_indices.len() {
-            assert!(true);
-            return;
-        }
-
-        // If it does happen to be the same size, there should be ones that are different.
-        for i in 0..genome.ordered_gene_indices.len() {
-            let b = &before.ordered_gene_indices[i];
-            let a = &genome.ordered_gene_indices[i];
-            if a != b {
+        // There should be some kind of difference in the genome
+        for i in 0..genome.genes.len() {
+            let b = &before.genes[i];
+            let a = &genome.genes[i];
+            if a.from != b.from || a.to != b.to || a.weight != b.weight {
                 has_diff_gene = true;
+                break;
             }
         }
 
