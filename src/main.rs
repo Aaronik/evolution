@@ -1,6 +1,6 @@
 use std::{
     io,
-    time::{Duration, Instant}
+    time::{Duration, Instant},
 };
 
 use crossterm::{
@@ -8,9 +8,7 @@ use crossterm::{
     execute,
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
-use tui::{
-    backend::CrosstermBackend, Terminal,
-};
+use tui::{backend::CrosstermBackend, Terminal};
 
 use evolution::*;
 
@@ -81,15 +79,27 @@ fn main() {
     // TODO So the UI is only capable of drawing like 100 frames per second, even if the program
     // can go much faster than that. So first step to speed up will be to extract the program out
     // into a different thread.
+    // A hack can be brought in by skipping draw frames. If you have a loop counter and only run
+    // terminal.draw on certain iterations of that loop, it works pretty alright and the program
+    // can run way faster. But really it should just be that the UI keeps up with the program as
+    // best it can. If the program's running faster than the UI, then the ui skips frames.
 
     let mut pause_info = 0;
 
-    loop {
-        let lf = world.lifeforms.iter().map(|i| i.1).nth(selected_lf_index as usize);
+    let mut should_draw = true;
 
-        terminal
-            .draw(|f| ui(f, size, &world, iteration, lf, saved_tick_rate))
-            .unwrap();
+    loop {
+        let lf = world
+            .lifeforms
+            .iter()
+            .map(|i| i.1)
+            .nth(selected_lf_index as usize);
+
+        if should_draw {
+            terminal
+                .draw(|f| ui(f, size, &world, lf, saved_tick_rate))
+                .unwrap();
+        }
 
         let tick_rate = Duration::from_millis(saved_tick_rate);
 
@@ -101,6 +111,7 @@ fn main() {
             if let Event::Key(key) = event::read().unwrap() {
                 match key.code {
                     KeyCode::Char('q') => break,
+                    KeyCode::Char('d') => should_draw = !should_draw,
                     KeyCode::Char('p') => {
                         if paused {
                             paused = false;
@@ -120,6 +131,19 @@ fn main() {
                     KeyCode::Right => saved_tick_rate = (saved_tick_rate * 2) + 1,
                     _ => (),
                 };
+
+                // These are handy for when the terminal is set to not draw.
+                // TODO These should be removed when the UI thread just tries to keep up with the main
+                // thread.
+                let lf = world
+                    .lifeforms
+                    .iter()
+                    .map(|i| i.1)
+                    .nth(selected_lf_index as usize);
+                terminal
+                    .draw(|f| ui(f, size, &world, lf, saved_tick_rate))
+                    .unwrap();
+
             }
         }
 

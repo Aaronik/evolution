@@ -56,7 +56,7 @@ where
 {
     let block = Block::default().title("Controls").borders(Borders::ALL);
     let text = vec![Spans::from(
-        "q = quit | p = pause | Up/Down = Select LifeForm | Left/Right = change tick rate",
+        "q = quit | p = pause | d = pause drawing | Up/Down = Select LifeForm | Left/Right = change tick rate",
     )];
     let paragraph = Paragraph::new(text).block(block);
 
