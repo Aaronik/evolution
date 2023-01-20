@@ -10,11 +10,11 @@ static DIRECTIONS: &'static [(i8, i8)] = &[
     (0, 1), // 0 = North
     (1, 1), // 1 = NorthEast
     (1, 0), // 2 = East
-    (-1, 1), // 3 = SouthEast
+    (1, -1), // 3 = SouthEast
     (0, -1), // 4 = South
     (-1, -1), // 5 = SouthWest
     (-1, 0), // 6 = West
-    (-1, -1), // 7 = NorthWest
+    (-1, 1), // 7 = NorthWest
 ];
 
 #[derive(Debug, Clone)]
