@@ -408,7 +408,6 @@ where
             }
 
             for (name, loc) in neuron_locs.values() {
-                // let x = (loc.0 + (name.len() / 2) as f64) + 1.0;
                 ctx.print(loc.0, loc.1, Span::from(Span::styled(String::from(name), Style::default().fg(Color::White))));
             }
         });
@@ -472,7 +471,7 @@ where
     items.push(
         ListItem::new(format!(
             "Info: iteration: {} | tick rate: {}ms",
-            tick_rate, world.tics
+            world.tics, tick_rate
         ))
         .style(Style::default().fg(Color::Cyan)),
     );

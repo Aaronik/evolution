@@ -94,7 +94,7 @@ impl<'a> World<'a> {
             // If the lifeform is on a resource, remove it
             if self.food.remove(&lf.location) {
                 lf.hunger -= 0.3;
-                lf.health += 0.1;
+                lf.health += 0.3;
                 if lf.hunger < 0.0 {
                     lf.hunger = 0.0;
                     has_split.push((lf.location.clone(), lf.genome.clone()));
@@ -109,12 +109,7 @@ impl<'a> World<'a> {
             }
 
             let dist_to_danger = dist_abs(&lf.location, &self.danger);
-            lf.health -= 0.1 / dist_to_danger.powi(2);
-
-            // Let the danger move around slowly
-            if self.tics % self.props.danger_delay == 0 {
-                randomize(self.props.size, &mut self.danger);
-            }
+            lf.health -= 1.0 / dist_to_danger.powi(2);
 
             if lf.health <= 0.0 {
                 has_died.push(lf.id);
