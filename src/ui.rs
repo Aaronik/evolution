@@ -80,27 +80,11 @@ fn draw_world<B>(
         .x_bounds([0.0, size as f64])
         .y_bounds([0.0, size as f64])
         .paint(|ctx| {
-            for water in &world.water {
-                ctx.print(
-                    water.0 as f64,
-                    water.1 as f64,
-                    Span::styled("W", Style::default().fg(Color::Blue)),
-                );
-            }
-
             for food in &world.food {
                 ctx.print(
                     food.0 as f64,
                     food.1 as f64,
                     Span::styled("F", Style::default().fg(Color::Green)),
-                );
-            }
-
-            for heal in &world.heals {
-                ctx.print(
-                    heal.0 as f64,
-                    heal.1 as f64,
-                    Span::styled("♥", Style::default().fg(Color::Red)),
                 );
             }
 
@@ -157,27 +141,20 @@ fn draw_world<B>(
                     _ => Color::White,
                 };
 
+                let mut style = Style::default().fg(color);
+
                 if let Some(selected_lf) = selected_lf {
                     if lf.id == selected_lf.id {
-                        ctx.print(
-                            lf.location.0 as f64,
-                            lf.location.1 as f64,
-                            Span::styled(char, Style::default().fg(Color::White)),
-                        );
-                    } else {
-                        ctx.print(
-                            lf.location.0 as f64,
-                            lf.location.1 as f64,
-                            Span::styled(char, Style::default().fg(color)),
-                        );
+                        style = style.fg(Color::White);
                     }
-                } else {
-                    ctx.print(
-                        lf.location.0 as f64,
-                        lf.location.1 as f64,
-                        Span::styled(char, Style::default().fg(color)),
-                    );
                 }
+
+                ctx.print(
+                    lf.location.0 as f64,
+                    lf.location.1 as f64,
+                    Span::styled(char, style),
+                );
+
             }
 
             for danger in &world.danger {
@@ -213,7 +190,7 @@ fn draw_right<B>(
         .constraints([Constraint::Percentage(50), Constraint::Percentage(50)].as_ref())
         .split(area);
 
-    draw_top_right(f, tick_rate, world, chunks[0]);
+    draw_top_right(f, selected_lf, tick_rate, world, chunks[0]);
     draw_single_lf_information(f, selected_lf, world, chunks[1]);
 }
 
@@ -239,44 +216,91 @@ fn draw_single_lf_information<B>(
         )
         .split(area);
 
-    draw_lf_selection(f, selected_lf, world, chunks[0]);
+    draw_lf_stats(f, selected_lf, world, chunks[0]);
     draw_lf_input_neuron_values(f, selected_lf, chunks[1]);
     draw_lf_output_neuron_values(f, selected_lf, chunks[2]);
     draw_lf_neural_net(f, selected_lf, chunks[3]);
+}
+
+fn draw_lf_stats<B>(f: &mut Frame<B>, selected_lf: Option<&LifeForm>, world: &World, area: Rect)
+where
+    B: Backend,
+{
+
+    if let None = selected_lf {
+        return;
+    }
+
+    let lf = selected_lf.unwrap();
+
+    let mut items: Vec<ListItem> = vec![];
+
+    // for (neuron_type, neuron) in selected_lf.unwrap().neural_net.input_neurons.values() {
+    //     items.push(ListItem::new(format!(
+    //         "{:?}: {:?}",
+    //         neuron_type, neuron.value
+    //     )));
+    // }
+
+    items.push(ListItem::new("Health:"));
+    items.push(ListItem::new(lf.health.to_string()));
+
+    items.push(ListItem::new("Hunger:"));
+    items.push(ListItem::new(lf.hunger.to_string()));
+
+    let list = List::new(items).block(
+        Block::default()
+            .title(format!(
+                "LF {} Stats",
+                selected_lf.unwrap().id
+            ))
+            .borders(Borders::ALL),
+    );
+
+    f.render_widget(list, area);
 }
 
 fn draw_lf_selection<B>(f: &mut Frame<B>, selected_lf: Option<&LifeForm>, world: &World, area: Rect)
 where
     B: Backend,
 {
-    let items: Vec<ListItem> = world
-        .lifeforms
-        .values()
-        .map(|lf| {
-            if let Some(selected_lf) = selected_lf {
-                if lf.id == selected_lf.id {
-                    ListItem::new(format!("=> {}", lf.id)).style(
-                        Style::default()
-                            .bg(Color::White)
-                            .fg(Color::Black)
-                            .add_modifier(Modifier::BOLD),
-                    )
-                } else {
-                    ListItem::new(format!("{}", lf.id))
+    let height = area.height as usize;
+    let column_width = 5.0;
+
+    // TODO There's a subtle bug here where certain ids aren't showing up, although they still get
+    // selected over. I believe there's overlap for some reason. Some id is being painted over
+    // another. I checked the columns/rows and they do seem to be integer values (although with a
+    // .0) after them.
+    let canv = Canvas::default()
+        .block(
+            Block::default()
+                .title("Select Lifeform")
+                .borders(Borders::ALL),
+        )
+        .x_bounds([0.0, area.width as f64])
+        .y_bounds([0.0, area.height as f64])
+        .paint(|ctx| {
+            for (idx, lf) in world.lifeforms.values().enumerate() {
+                let column = (idx / height) as f64 * column_width;
+                let row = (height - (idx % height)) as f64 - 1.0;
+
+                let mut style = Style::default();
+
+                let txt = lf.id.to_string();
+
+                if let Some(selected_lf) = selected_lf {
+                    if lf.id == selected_lf.id {
+                        style = style.fg(Color::Black).bg(Color::White).add_modifier(Modifier::BOLD);
+                    }
                 }
-            } else {
-                ListItem::new(format!("{}", lf.id))
+
+                let span = Span::from(Span::styled(txt, style));
+
+                ctx.print(column, row, span);
             }
-        })
-        .collect();
+        });
 
-    let list = List::new(items).block(
-        Block::default()
-            .title("Select LifeForm")
-            .borders(Borders::ALL),
-    );
-
-    f.render_widget(list, area);
+    f.render_widget(canv, area);
 }
 
 fn draw_lf_input_neuron_values<B>(f: &mut Frame<B>, selected_lf: Option<&LifeForm>, area: Rect)
@@ -380,8 +404,7 @@ where
                     y1: from.1,
                     x2: to.0,
                     y2: to.1,
-                    color: Color::Rgb((idx * 10) as u8, (idx * 10) as u8, (idx * 10) as u8)
-                    // color: Color::Yellow,
+                    color: Color::Rgb((idx * 10) as u8, (idx * 10) as u8, (idx * 10) as u8), // color: Color::Yellow,
                 });
                 ctx.layer();
             }
@@ -395,8 +418,13 @@ where
     f.render_widget(neural_net_canvas, area);
 }
 
-fn draw_top_right<B>(f: &mut Frame<B>, tick_rate: u64, world: &World, area: Rect)
-where
+fn draw_top_right<B>(
+    f: &mut Frame<B>,
+    selected_lf: Option<&LifeForm>,
+    tick_rate: u64,
+    world: &World,
+    area: Rect,
+) where
     B: Backend,
 {
     let chunks = Layout::default()
@@ -405,8 +433,27 @@ where
         .constraints([Constraint::Percentage(35), Constraint::Percentage(65)].as_ref())
         .split(area);
 
-    draw_world_information(f, tick_rate, world, chunks[0]);
+    draw_world_and_selection(f, selected_lf, tick_rate, world, chunks[0]);
     draw_events(f, world, chunks[1]);
+}
+
+fn draw_world_and_selection<B>(
+    f: &mut Frame<B>,
+    selected_lf: Option<&LifeForm>,
+    tick_rate: u64,
+    world: &World,
+    area: Rect,
+) where
+    B: Backend,
+{
+    let chunks = Layout::default()
+        .direction(Direction::Vertical)
+        .margin(0)
+        .constraints([Constraint::Percentage(50), Constraint::Percentage(50)].as_ref())
+        .split(area);
+
+    draw_world_information(f, tick_rate, world, chunks[0]);
+    draw_lf_selection(f, selected_lf, world, chunks[1]);
 }
 
 fn draw_world_information<B>(f: &mut Frame<B>, tick_rate: u64, world: &World, area: Rect)
@@ -497,9 +544,9 @@ fn generate_neuron_hashmap(
     let inner_neuron_spacing = area.width as f64 / (neural_net.inner_neurons.len() + 1) as f64;
     let output_neuron_spacing = area.width as f64 / (neural_net.output_neurons.len() + 1) as f64;
 
-    let input_neuron_row = 1;
+    let output_neuron_row = 1;
     let inner_neuron_row = (area.height / 2) + 2;
-    let output_neuron_row = area.height - 1;
+    let input_neuron_row = area.height - 1;
 
     let mut neuron_location_map = HashMap::new();
 

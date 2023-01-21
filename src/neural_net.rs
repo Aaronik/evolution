@@ -112,10 +112,6 @@ pub struct NeuralNet {
 pub enum InputNeuronType {
     DirectionToFood,
     DistanceToFood,
-    DirectionToWater,
-    DistanceToWater,
-    DirectionToHeal,
-    DistanceToHeal,
     DirectionToDanger,
     DistanceToDanger,
     DirectionToHealthiestLF,
@@ -126,7 +122,6 @@ pub enum InputNeuronType {
     ClosestLFHealth,
     Health,
     Hunger,
-    Thirst,
     PopulationDensity,
     NeighborhoodDensity,
     Random,

@@ -13,7 +13,7 @@ use tui::{backend::CrosstermBackend, Terminal};
 use evolution::*;
 
 // TODO
-// * Start world with many waters,foods,hearts
+// * foods
 // * Order the lifeform ids in the select screen
 // * Get timestamps for events
 // * Ok, we don't really need water or hearts, we really just need FOOD. A LF will slowly lose
@@ -43,8 +43,6 @@ fn main() {
         genome_size: 25,
         mutation_rate: 0.001,
         food_density: 30,
-        water_density: 3,
-        heals_density: 30,
         num_inner_neurons,
         minimum_number_lifeforms: 15,
         // TODO Add num dangers

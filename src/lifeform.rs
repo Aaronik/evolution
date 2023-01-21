@@ -9,7 +9,6 @@ pub struct LifeForm {
     pub genome: Genome,
     pub neural_net: NeuralNet,
     pub hunger: f32, // 0 - 1
-    pub thirst: f32, // 0 - 1
     pub location: (usize, usize),
     pub lifespan: usize, // How many tics this one has lived for
     pub orientation: Direction,
@@ -35,7 +34,6 @@ impl LifeForm {
             neural_net,
             health: 1.0,
             hunger: 0.0,
-            thirst: 0.0,
             lifespan: 0,
             location: (id + 10, id + 10),
             most_recent_output_neuron_values: None,
