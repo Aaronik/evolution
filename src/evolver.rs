@@ -40,21 +40,18 @@ impl Evolver {
     pub fn mutate(genome: &mut Genome, nnh: &NeuralNetHelper) {
         // First we just get one gene at random from the bunch
         let idx = thread_rng().gen_range(0..genome.genes.len());
-        let mut gene = genome.genes.remove(idx);
 
         // Which of the three fields are we going to modify?
         let from_to_weight = thread_rng().gen_range(0..3);
 
         if from_to_weight == 0 {
             // TODO Maybe we should nudge this weight rather than raplace it?
-            gene.weight = Genome::random_weight();
+            genome.genes[idx].weight = Genome::random_weight();
         } else if from_to_weight == 1 {
-            gene.from = nnh.random_from_neuron();
+            genome.genes[idx].from = nnh.random_from_neuron();
         } else {
-            gene.to = nnh.random_to_neuron();
+            genome.genes[idx].to = nnh.random_to_neuron();
         }
-
-        genome.genes.push(gene);
 
         genome.recompute_ordered_gene_indices(nnh);
     }
