@@ -12,6 +12,9 @@ pub struct WorldProps<'a> {
     pub num_inner_neurons: usize,
     pub minimum_number_lifeforms: usize,
 
+    /// After how many tics does the danger randomly move a space
+    pub danger_delay: usize,
+
     /// After how many frames does a new food appear
     pub food_density: usize,
 
@@ -23,7 +26,7 @@ pub struct World<'a> {
     props: WorldProps<'a>,
     pub lifeforms: HashMap<usize, LifeForm>,
     pub food: HashSet<(usize, usize)>,
-    pub danger: HashSet<(usize, usize)>,
+    pub danger: (usize, usize),
     oscillator: f32,
     pub tics: usize,
     pub events: Vec<(EventType, String)>,
@@ -54,7 +57,7 @@ impl<'a> World<'a> {
 
         // Food generation
         let food = HashSet::new();
-        let danger = HashSet::from([(0, 0)]); // TODO make random, take variable amount
+        let danger = (0, 0);
 
         Self {
             props,
@@ -105,9 +108,13 @@ impl<'a> World<'a> {
                 }
             }
 
-            // TODO make this closest_danger, this assumes there's at least one danger
-            let dist_to_danger = dist_abs(&lf.location, &self.danger.iter().last().unwrap());
+            let dist_to_danger = dist_abs(&lf.location, &self.danger);
             lf.health -= 0.1 / dist_to_danger.powi(2);
+
+            // Let the danger move around slowly
+            if self.tics % self.props.danger_delay == 0 {
+                randomize(self.props.size, &mut self.danger);
+            }
 
             if lf.health <= 0.0 {
                 has_died.push(lf.id);
@@ -373,10 +380,6 @@ impl<'a> World<'a> {
                 &lifeform.location,
                 &self.food.iter().map(|loc| *loc).collect(),
             );
-            let closest_dang = &closest_to(
-                &lifeform.location,
-                &self.danger.iter().map(|loc| *loc).collect(),
-            );
             let loc = &lifeform.location;
             let orm = &lifeform.orientation.get_forward_modifier();
 
@@ -398,8 +401,8 @@ impl<'a> World<'a> {
                     InputNeuronType::NeighborhoodDensity => (num_in_vicinity / 8) as f32,
                     InputNeuronType::DirectionToFood => rel_dir(loc, orm, closest_food),
                     InputNeuronType::DistanceToFood => dist_rel(size, loc, closest_food),
-                    InputNeuronType::DirectionToDanger => rel_dir(loc, orm, closest_dang),
-                    InputNeuronType::DistanceToDanger => dist_rel(size, loc, closest_dang),
+                    InputNeuronType::DirectionToDanger => rel_dir(loc, orm, &self.danger),
+                    InputNeuronType::DistanceToDanger => dist_rel(size, loc, &self.danger),
                     InputNeuronType::DirectionToHealthiestLF => rel_dir(loc, orm, &hlthst_lf_loc),
                     InputNeuronType::DistanceToHealthiestLF => dist_rel(size, loc, &hlthst_lf_loc),
                     InputNeuronType::HealthiestLFHealth => hlthst_lf_health,

@@ -21,7 +21,6 @@ use evolution::*;
 // LINEARLY. Also though it can still be affected by the danger. This will make it so much easier
 // to get at the right balances. If a LF has surpassed a certain amount of fullness when it eats
 // then it splits!
-// * The danger should move around!
 // * Make rel distance go fro -1 to 1 (more sensitivity)
 // * Let food be a thing that, after it gets a certain age, itself splits into multiple of it. That
 //   way it's like plants, getting energy from the ambient system.
@@ -45,7 +44,7 @@ fn main() {
         food_density: 30,
         num_inner_neurons,
         minimum_number_lifeforms: 15,
-        // TODO Add num dangers
+        danger_delay: 10,
     };
 
     let mut world = World::new(world_props);

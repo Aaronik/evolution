@@ -490,8 +490,15 @@ mod tests {
 
     #[test]
     fn test_randomize() {
-        let mut loc = (5, 5);
-        randomize(10, &mut loc);
-        assert_ne!(loc, (5, 5));
+
+        for _ in 0..100 {
+            let mut loc = (5, 5);
+            randomize(10, &mut loc);
+            assert_ne!(loc, (5, 5));
+
+            // It has to move by only one though
+            assert!([4,5,6].contains(&loc.0));
+            assert!([4,5,6].contains(&loc.1));
+        }
     }
 }

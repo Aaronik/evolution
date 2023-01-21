@@ -157,19 +157,17 @@ fn draw_world<B>(
 
             }
 
-            for danger in &world.danger {
-                ctx.print(
-                    danger.0 as f64,
-                    danger.1 as f64,
-                    Span::styled(
-                        "☠ ",
-                        Style::default()
-                            .fg(Color::White)
-                            .bg(Color::Red)
-                            .add_modifier(Modifier::BOLD),
-                    ),
-                );
-            }
+            ctx.print(
+                world.danger.0 as f64,
+                world.danger.1 as f64,
+                Span::styled(
+                    "☠ ",
+                    Style::default()
+                        .fg(Color::White)
+                        .bg(Color::Red)
+                        .add_modifier(Modifier::BOLD),
+                ),
+            );
         });
 
     f.render_widget(world_canvas, area);
