@@ -116,15 +116,15 @@ fn draw_world<B>(
 
                 let char = match num {
                     1 => single_lf_char,
-                    2 => "2",
-                    3 => "3",
-                    4 => "4",
-                    5 => "5",
-                    6 => "6",
-                    7 => "7",
-                    8 => "8",
-                    9 => "9",
-                    _ => "!",
+                    2 => "➋",
+                    3 => "➌",
+                    4 => "➍",
+                    5 => "➎",
+                    6 => "➏",
+                    7 => "➐",
+                    8 => "➑",
+                    9 => "➒",
+                    _ => "#",
                 };
 
                 let color = match lf.health {
@@ -161,10 +161,9 @@ fn draw_world<B>(
                 world.danger.0 as f64,
                 world.danger.1 as f64,
                 Span::styled(
-                    "☠ ",
+                    "☢",
                     Style::default()
-                        .fg(Color::White)
-                        .bg(Color::Red)
+                        .fg(Color::Red)
                         .add_modifier(Modifier::BOLD),
                 ),
             );
@@ -189,13 +188,12 @@ fn draw_right<B>(
         .split(area);
 
     draw_top_right(f, selected_lf, tick_rate, world, chunks[0]);
-    draw_single_lf_information(f, selected_lf, world, chunks[1]);
+    draw_single_lf_information(f, selected_lf, chunks[1]);
 }
 
 fn draw_single_lf_information<B>(
     f: &mut Frame<B>,
     selected_lf: Option<&LifeForm>,
-    world: &World,
     area: Rect,
 ) where
     B: Backend,
@@ -214,13 +212,13 @@ fn draw_single_lf_information<B>(
         )
         .split(area);
 
-    draw_lf_stats(f, selected_lf, world, chunks[0]);
+    draw_lf_stats(f, selected_lf, chunks[0]);
     draw_lf_input_neuron_values(f, selected_lf, chunks[1]);
     draw_lf_output_neuron_values(f, selected_lf, chunks[2]);
     draw_lf_neural_net(f, selected_lf, chunks[3]);
 }
 
-fn draw_lf_stats<B>(f: &mut Frame<B>, selected_lf: Option<&LifeForm>, world: &World, area: Rect)
+fn draw_lf_stats<B>(f: &mut Frame<B>, selected_lf: Option<&LifeForm>, area: Rect)
 where
     B: Backend,
 {
@@ -381,6 +379,8 @@ where
     // Maybe to do Canvas' Points: https://docs.rs/tui/latest/tui/widgets/canvas/struct.Points.html
     // Good inf in here: https://docs.rs/tui/latest/src/tui/widgets/canvas/line.rs.html#16-57
 
+    // TODO For self referencing arrow, could use ↺. Can change font size?
+
     // TODO Get this outside of here and reassign to it instead of recreating a new one each time
     let neuron_locs = generate_neuron_hashmap(&lf.neural_net, &area);
 
@@ -394,22 +394,22 @@ where
             // TODO I want to represent the weight AND the activity as well
             // There's an expressive greyscale here.
             // All connections could be in dark grey, then heavier ones could lighten?
-            for (idx, gene) in lf.genome.genes.iter().enumerate() {
-                let from = neuron_locs[&gene.from].1;
+            for gene in &lf.genome.genes {
+                let (name, from) = &neuron_locs[&gene.from];
                 let to = neuron_locs[&gene.to].1;
                 ctx.draw(&Line {
-                    x1: from.0,
+                    x1: from.0 + (name.len() / 2) as f64,
                     y1: from.1,
                     x2: to.0,
                     y2: to.1,
-                    color: Color::Rgb((idx * 10) as u8, (idx * 10) as u8, (idx * 10) as u8), // color: Color::Yellow,
+                    color: Color::Rgb(((gene.weight + 4.0) * 31.0) as u8, ((gene.weight + 4.0) * 31.0) as u8, ((gene.weight + 4.0) * 31.0) as u8),
                 });
                 ctx.layer();
             }
 
             for (name, loc) in neuron_locs.values() {
-                let x = (loc.0 - (name.len() / 2) as f64) + 1.0;
-                ctx.print(x, loc.1, String::from(name))
+                // let x = (loc.0 + (name.len() / 2) as f64) + 1.0;
+                ctx.print(loc.0, loc.1, Span::from(Span::styled(String::from(name), Style::default().fg(Color::White))));
             }
         });
 
@@ -471,7 +471,7 @@ where
 
     items.push(
         ListItem::new(format!(
-            "Info: tick rate: {}ms | iteration: {}",
+            "Info: iteration: {} | tick rate: {}ms",
             tick_rate, world.tics
         ))
         .style(Style::default().fg(Color::Cyan)),
@@ -533,29 +533,31 @@ fn generate_neuron_hashmap(
     neural_net: &NeuralNet,
     area: &Rect,
 ) -> HashMap<usize, (String, (f64, f64))> {
-    let max_names_per_line = 7;
+    let max_names_per_line = 3 as u16;
 
     // TODO Ok for all of three of these, gotta make it so there's a max of 7 per line, then
     // it moves onto a different line. So this *_spacing idea will be rethought.
 
-    let input_neuron_spacing = area.width as f64 / (neural_net.input_neurons.len() + 1) as f64;
+    let input_neuron_spacing = area.width as f64 / (max_names_per_line) as f64;
     let inner_neuron_spacing = area.width as f64 / (neural_net.inner_neurons.len() + 1) as f64;
     let output_neuron_spacing = area.width as f64 / (neural_net.output_neurons.len() + 1) as f64;
 
     let output_neuron_row = 1;
-    let inner_neuron_row = (area.height / 2) + 2;
+    let inner_neuron_row = (area.height / 2) - 2;
     let input_neuron_row = area.height - 1;
 
     let mut neuron_location_map = HashMap::new();
 
     for (idx, (neuron_type, neuron)) in neural_net.input_neurons.values().enumerate() {
+        let row = input_neuron_row - ((idx as u16 / max_names_per_line) * 2);
+
         neuron_location_map.insert(
             neuron.id,
             (
                 format!("{}", neuron_type),
                 (
-                    (idx + 1) as f64 * input_neuron_spacing,
-                    input_neuron_row as f64,
+                    ((idx as u16 + 1) % max_names_per_line) as f64 * input_neuron_spacing,
+                    row as f64,
                 ),
             ),
         );
@@ -565,7 +567,7 @@ fn generate_neuron_hashmap(
         neuron_location_map.insert(
             neuron.id,
             (
-                String::from("InnerNeuron"),
+                String::from("⬤"),
                 (
                     (idx + 1) as f64 * inner_neuron_spacing,
                     inner_neuron_row as f64,

@@ -60,13 +60,13 @@ fn main() {
     // When we pause we greatly increase the tick rate to keep the loop from
     // cooking the CPUs. This is where we store the value to go back to.
     // Note we mutate this to adjust tick rate.
-    let mut saved_tick_rate = 0;
+    let mut saved_tick_rate = 250;
 
     // Will be adjusted within the loop as well
     let mut paused = false;
 
     // Which lifeform is currently selected within the UI
-    let mut selected_lf_index: i64 = 0;
+    let mut selected_lf_id: Option<usize> = None;
 
     // TODO So the UI is only capable of drawing like 100 frames per second, even if the program
     // can go much faster than that. So first step to speed up will be to extract the program out
@@ -81,11 +81,11 @@ fn main() {
     let mut should_draw = true;
 
     loop {
-        let lf = world
-            .lifeforms
-            .iter()
-            .map(|i| i.1)
-            .nth(selected_lf_index as usize);
+        let lf = if let Some(id) = selected_lf_id {
+            world.lifeforms.get(&id)
+        } else {
+            None
+        };
 
         if should_draw {
             terminal
@@ -114,10 +114,41 @@ fn main() {
                             saved_tick_rate = u64::MAX;
                         }
                     }
-                    KeyCode::Up => selected_lf_index = i64::max(0, selected_lf_index - 1),
+                    KeyCode::Up => {
+                        if let None = selected_lf_id {
+                            selected_lf_id = world.lifeforms.keys().map(|k| *k).last();
+                        } else if let Some(id) = selected_lf_id {
+                            let current_index = world.lifeforms.keys().position(|lid| lid == &id);
+
+                            if let Some(current_index) = current_index {
+                                if current_index == 0 {
+                                    selected_lf_id = None;
+                                } else {
+                                    selected_lf_id =
+                                        world.lifeforms.keys().map(|k| *k).nth(current_index - 1)
+                                }
+                            } else {
+                                selected_lf_id = None;
+                            }
+                        }
+                    }
                     KeyCode::Down => {
-                        selected_lf_index =
-                            i64::min(world.lifeforms.len() as i64 - 1, selected_lf_index + 1)
+                        if let None = selected_lf_id {
+                            selected_lf_id = world.lifeforms.keys().map(|k| *k).nth(0);
+                        } else if let Some(id) = selected_lf_id {
+                            let current_index = world.lifeforms.keys().position(|lid| lid == &id);
+
+                            if let Some(current_index) = current_index {
+                                if current_index == world.lifeforms.len() {
+                                    selected_lf_id = None;
+                                } else {
+                                    selected_lf_id =
+                                        world.lifeforms.keys().map(|k| *k).nth(current_index + 1)
+                                }
+                            } else {
+                                selected_lf_id = None;
+                            }
+                        }
                     }
                     KeyCode::Left => saved_tick_rate = saved_tick_rate / 3,
                     KeyCode::Right => saved_tick_rate = (saved_tick_rate * 2) + 1,
@@ -127,15 +158,14 @@ fn main() {
                 // These are handy for when the terminal is set to not draw.
                 // TODO These should be removed when the UI thread just tries to keep up with the main
                 // thread.
-                let lf = world
-                    .lifeforms
-                    .iter()
-                    .map(|i| i.1)
-                    .nth(selected_lf_index as usize);
+                let lf = if let Some(id) = selected_lf_id {
+                    world.lifeforms.get(&id)
+                } else {
+                    None
+                };
                 terminal
                     .draw(|f| ui(f, size, &world, lf, saved_tick_rate))
                     .unwrap();
-
             }
         }
 

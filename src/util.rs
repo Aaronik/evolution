@@ -490,7 +490,6 @@ mod tests {
 
     #[test]
     fn test_randomize() {
-
         for _ in 0..100 {
             let mut loc = (5, 5);
             randomize(10, &mut loc);
