@@ -121,6 +121,11 @@ impl<'a> World<'a> {
             }
         }
 
+        // Let the danger move around slowly
+        if self.tics % self.props.danger_delay == 0 {
+            randomize(self.props.size, &mut self.danger);
+        }
+
         for lf_id in has_died {
             // TODO When a really healthy one dies, it'd be nice if it reproduced
             self.lifeforms.remove(&lf_id);
