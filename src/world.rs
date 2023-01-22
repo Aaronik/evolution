@@ -14,6 +14,9 @@ pub struct WorldProps<'a> {
 
     /// After how many tics does the danger randomly move a space
     pub danger_delay: usize,
+    /// How much does it hurt. It's radioactive so this damage falls off with the square of its
+    /// distance.
+    pub danger_damage: f32,
 
     /// After how many frames does a new food appear
     pub food_density: usize,
@@ -109,7 +112,7 @@ impl<'a> World<'a> {
             }
 
             let dist_to_danger = dist_abs(&lf.location, &self.danger);
-            lf.health -= 1.0 / dist_to_danger.powi(2);
+            lf.health -= self.props.danger_damage / dist_to_danger.powi(2);
 
             if lf.health <= 0.0 {
                 has_died.push(lf.id);

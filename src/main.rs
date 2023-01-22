@@ -38,6 +38,7 @@ fn main() {
         num_inner_neurons,
         minimum_number_lifeforms: 15,
         danger_delay: 10,
+        danger_damage: 0.5,
     };
 
     let mut world = World::new(world_props);

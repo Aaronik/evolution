@@ -204,7 +204,7 @@ fn draw_single_lf_information<B>(
         .constraints(
             [
                 Constraint::Min(17),
-                Constraint::Min(35),
+                Constraint::Min(40),
                 Constraint::Min(35),
                 Constraint::Percentage(100),
             ]
@@ -302,10 +302,10 @@ where
 
     let mut items: Vec<ListItem> = vec![];
 
-    for (neuron_type, neuron) in selected_lf.unwrap().neural_net.input_neurons.values() {
+    for (idx, (neuron_type, neuron)) in selected_lf.unwrap().neural_net.input_neurons.values().enumerate() {
         items.push(ListItem::new(format!(
-            "{:?}: {:?}",
-            neuron_type, neuron.value
+            "{} - {:?}: {:?}",
+            idx, neuron_type, neuron.value
         )));
     }
 
@@ -516,7 +516,7 @@ fn generate_neuron_hashmap(
     neural_net: &NeuralNet,
     area: &Rect,
 ) -> HashMap<usize, (String, (f64, f64))> {
-    let max_names_per_line = 3 as u16;
+    let max_names_per_line = neural_net.input_neurons.len() as u16 + 1;
 
     // TODO Having a static max per line is alright, but it'd be nicer if it measured the length of
     // the neuron names, choosing dynamically.
@@ -531,13 +531,13 @@ fn generate_neuron_hashmap(
 
     let mut neuron_location_map = HashMap::new();
 
-    for (idx, (neuron_type, neuron)) in neural_net.input_neurons.values().enumerate() {
+    for (idx, (_neuron_type, neuron)) in neural_net.input_neurons.values().enumerate() {
         let row = input_neuron_row - ((idx as u16 / max_names_per_line) * 2);
 
         neuron_location_map.insert(
             neuron.id,
             (
-                format!("{}", neuron_type),
+                format!("{}", idx),
                 (
                     ((idx as u16 + 1) % max_names_per_line) as f64 * input_neuron_spacing,
                     row as f64,
