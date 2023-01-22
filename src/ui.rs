@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, BTreeSet};
 
 use tui::{
     backend::Backend,
@@ -231,13 +231,6 @@ where
 
     let mut items: Vec<ListItem> = vec![];
 
-    // for (neuron_type, neuron) in selected_lf.unwrap().neural_net.input_neurons.values() {
-    //     items.push(ListItem::new(format!(
-    //         "{:?}: {:?}",
-    //         neuron_type, neuron.value
-    //     )));
-    // }
-
     items.push(ListItem::new("Health:"));
     items.push(ListItem::new(lf.health.to_string()));
 
@@ -336,22 +329,22 @@ where
         return;
     }
 
-    let values: &Vec<(OutputNeuronType, f32)>;
+    let mut values: BTreeSet<String> = BTreeSet::new();
 
     if let None = selected_lf.unwrap().most_recent_output_neuron_values {
         return;
     } else {
-        values = selected_lf
-            .unwrap()
-            .most_recent_output_neuron_values
-            .as_ref()
-            .unwrap();
+        let lf = selected_lf.unwrap();
+        let most_recent_output_neuron_values = lf.most_recent_output_neuron_values.as_ref().unwrap();
+        for (neuron_type, value) in most_recent_output_neuron_values {
+            values.insert(format!("{:?}: {}", neuron_type, value));
+        }
     }
 
     let mut items: Vec<ListItem> = vec![];
 
-    for (neuron_type, value) in values.iter() {
-        items.push(ListItem::new(format!("{:?}: {}", neuron_type, value)));
+    for st in values {
+        items.push(ListItem::new(st));
     }
 
     let list = List::new(items).block(
