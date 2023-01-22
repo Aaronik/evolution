@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use rand::{thread_rng, Rng};
 use strum::IntoEnumIterator;
-use strum_macros::{EnumIter, Display};
+use strum_macros::{Display, EnumIter};
 
 /// Builds AND houses data structures that help for speedy neural net related calculations
 /// Meant to be a singleton that itself builds neural nets and houses these helpers.
@@ -70,30 +70,46 @@ impl NeuralNetHelper {
 
     /// Returns a neuron id randomly chosen from input neurons unioned with inner neurons.
     /// This is all the places where a gene can start from.
-    pub fn random_from_neuron(&self) -> usize {
+    /// Takes an optional "not" value, which, if supplied, will prevent this from returning
+    /// that value.
+    pub fn random_from_neuron(&self, not_id: Option<usize>) -> usize {
         let num_neurons = self.input_neurons.len() + self.inner_neurons.len();
         let idx = thread_rng().gen_range(0..num_neurons);
 
+        let id: usize;
+
         if idx < self.input_neurons.len() {
-            *self.input_neurons.keys().nth(idx).unwrap()
+            let ids = &self.input_neurons.keys().map(|k| *k).collect();
+            id = get_id_not_id(ids, idx, not_id);
         } else {
+            let ids = &self.inner_neurons.keys().map(|k| *k).collect();
             let index = idx - self.input_neurons.len();
-            *self.inner_neurons.keys().nth(index).unwrap()
+            id = get_id_not_id(ids, index, not_id);
         }
+
+        id
     }
 
     /// Returns a neuron id randomly chosen from inner neurons unioned with output neurons.
     /// This is all the places where a gene can end, aka go to.
-    pub fn random_to_neuron(&self) -> usize {
+    /// Takes an optional "not" value, which, if supplied, will prevent this from returning
+    /// that value.
+    pub fn random_to_neuron(&self, not_id: Option<usize>) -> usize {
         let num_neurons = self.inner_neurons.len() + self.output_neurons.len();
         let idx = thread_rng().gen_range(0..num_neurons);
 
+        let id: usize;
+
         if idx < self.inner_neurons.len() {
-            *self.inner_neurons.keys().nth(idx).unwrap()
+            let ids = &self.inner_neurons.keys().map(|k| *k).collect();
+            id = get_id_not_id(ids, idx, not_id);
         } else {
+            let ids = &self.output_neurons.keys().map(|k| *k).collect();
             let index = idx - self.inner_neurons.len();
-            *self.output_neurons.keys().nth(index).unwrap()
+            id = get_id_not_id(ids, index, not_id);
         }
+
+        id
     }
 
     pub fn neuron_type(&self, neuron_id: &usize) -> &NeuronType {
@@ -157,4 +173,25 @@ pub enum NeuronType {
     InputNeuron,
     InnerNeuron,
     OutputNeuron,
+}
+
+/// The basic issue is that we want to request a random neuron id, but we sometimes want
+/// to make sure that it's different from a given one, which in this case is called not_id.
+/// This is just a helper to abstract some of the repeated logic in random_{from,to}_neuron.
+fn get_id_not_id(ids: &Vec<usize>, mut idx: usize, not_id: Option<usize>) -> usize {
+    let mut id = ids[idx];
+
+    if let Some(not_id) = not_id {
+        if not_id == id {
+            if idx > 0 {
+                idx -= 1;
+            } else {
+                idx += 1;
+            }
+        }
+    }
+
+    id = ids[idx];
+
+    id
 }

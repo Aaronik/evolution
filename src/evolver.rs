@@ -48,9 +48,9 @@ impl Evolver {
             // TODO Maybe we should nudge this weight rather than raplace it?
             genome.genes[idx].weight = Genome::random_weight();
         } else if from_to_weight == 1 {
-            genome.genes[idx].from = nnh.random_from_neuron();
+            genome.genes[idx].from = nnh.random_from_neuron(Some(genome.genes[idx].from));
         } else {
-            genome.genes[idx].to = nnh.random_to_neuron();
+            genome.genes[idx].to = nnh.random_to_neuron(Some(genome.genes[idx].to));
         }
 
         genome.recompute_ordered_gene_indices(nnh);

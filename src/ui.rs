@@ -373,12 +373,6 @@ where
 
     let lf = selected_lf.unwrap();
 
-    // TODO This is gonna be friggin awesome
-    // Only hard part is in representing neuron that connections to itself and two neurons that
-    // connect back to each other.
-    // Maybe to do Canvas' Points: https://docs.rs/tui/latest/tui/widgets/canvas/struct.Points.html
-    // Good inf in here: https://docs.rs/tui/latest/src/tui/widgets/canvas/line.rs.html#16-57
-
     // TODO For self referencing arrow, could use ↺. Can change font size?
 
     // TODO Get this outside of here and reassign to it instead of recreating a new one each time
@@ -391,9 +385,6 @@ where
         .x_bounds([0.0, area.width as f64])
         .y_bounds([0.0, area.height as f64])
         .paint(|ctx| {
-            // TODO I want to represent the weight AND the activity as well
-            // There's an expressive greyscale here.
-            // All connections could be in dark grey, then heavier ones could lighten?
             for gene in &lf.genome.genes {
                 let (name, from) = &neuron_locs[&gene.from];
                 let to = neuron_locs[&gene.to].1;
@@ -534,8 +525,8 @@ fn generate_neuron_hashmap(
 ) -> HashMap<usize, (String, (f64, f64))> {
     let max_names_per_line = 3 as u16;
 
-    // TODO Ok for all of three of these, gotta make it so there's a max of 7 per line, then
-    // it moves onto a different line. So this *_spacing idea will be rethought.
+    // TODO Having a static max per line is alright, but it'd be nicer if it measured the length of
+    // the neuron names, choosing dynamically.
 
     let input_neuron_spacing = area.width as f64 / (max_names_per_line) as f64;
     let inner_neuron_spacing = area.width as f64 / (neural_net.inner_neurons.len() + 1) as f64;

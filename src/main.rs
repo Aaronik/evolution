@@ -13,14 +13,7 @@ use tui::{backend::CrosstermBackend, Terminal};
 use evolution::*;
 
 // TODO
-// * foods
-// * Order the lifeform ids in the select screen
 // * Get timestamps for events
-// * Ok, we don't really need water or hearts, we really just need FOOD. A LF will slowly lose
-// health until it eats, and then its health will come up by a certain amount. Health is lost
-// LINEARLY. Also though it can still be affected by the danger. This will make it so much easier
-// to get at the right balances. If a LF has surpassed a certain amount of fullness when it eats
-// then it splits!
 // * Make rel distance go fro -1 to 1 (more sensitivity)
 // * Let food be a thing that, after it gets a certain age, itself splits into multiple of it. That
 //   way it's like plants, getting energy from the ambient system.

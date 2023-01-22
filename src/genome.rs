@@ -49,8 +49,8 @@ impl Genome {
         for id in 0..props.size {
             genes.push(Gene {
                 id,
-                from: props.neural_net_helper.random_from_neuron(),
-                to: props.neural_net_helper.random_to_neuron(),
+                from: props.neural_net_helper.random_from_neuron(None),
+                to: props.neural_net_helper.random_to_neuron(None),
                 weight: Genome::random_weight(),
             });
         }
