@@ -405,7 +405,7 @@ impl<'a> World<'a> {
                     InputNeuronType::Health => lifeform.health,
                     InputNeuronType::Hunger => lifeform.hunger,
                     InputNeuronType::PopulationDensity => num_lifeforms as f32 / size.pow(2) as f32,
-                    InputNeuronType::NeighborhoodDensity => (num_in_vicinity / 8) as f32,
+                    InputNeuronType::NeighborhoodDensity => (num_in_vicinity / num_lifeforms) as f32,
                     InputNeuronType::DirectionToFood => rel_dir(loc, orm, closest_food),
                     InputNeuronType::DistanceToFood => dist_rel(size, loc, closest_food),
                     InputNeuronType::DirectionToDanger => rel_dir(loc, orm, &self.danger),
