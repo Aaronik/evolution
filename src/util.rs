@@ -452,47 +452,47 @@ mod tests {
         // Same point
         let l1 = (0, 0);
         let l2 = (0, 0);
-        assert_eq!(direc(&l1, &l2), 0.0);
+        assert_eq!(direc(&l1, &l2), DirectionName::North);
 
         let l1 = (5, 5);
         let l2 = (5, 5);
-        assert_eq!(direc(&l1, &l2), 0.0);
+        assert_eq!(direc(&l1, &l2), DirectionName::North);
 
         // Generally north
-        let l1 = (0, 1);
-        let l2 = (0, 0);
-        assert_eq!(direc(&l1, &l2), 0.25);
+        let l1 = (0, 0);
+        let l2 = (0, 1);
+        assert_eq!(direc(&l1, &l2), DirectionName::North);
 
-        let l1 = (1, 3);
-        let l2 = (0, 0);
-        assert_eq!(direc(&l1, &l2), 0.25);
+        let l1 = (0, 0);
+        let l2 = (1, 3);
+        assert_eq!(direc(&l1, &l2), DirectionName::North);
 
         // Generally east
         let l1 = (0, 0);
         let l2 = (1, 0);
-        assert_eq!(direc(&l1, &l2), 0.50);
+        assert_eq!(direc(&l1, &l2), DirectionName::East);
 
         let l1 = (0, 1);
         let l2 = (5, 2);
-        assert_eq!(direc(&l1, &l2), 0.50);
+        assert_eq!(direc(&l1, &l2), DirectionName::East);
 
         // Generally south
-        let l1 = (0, 0);
-        let l2 = (0, 1);
-        assert_eq!(direc(&l1, &l2), 0.75);
+        let l1 = (0, 1);
+        let l2 = (0, 0);
+        assert_eq!(direc(&l1, &l2), DirectionName::South);
 
-        let l1 = (0, 0);
-        let l2 = (1, 2);
-        assert_eq!(direc(&l1, &l2), 0.75);
+        let l1 = (1, 2);
+        let l2 = (0, 0);
+        assert_eq!(direc(&l1, &l2), DirectionName::South);
 
         // Generally west
         let l1 = (1, 0);
         let l2 = (0, 0);
-        assert_eq!(direc(&l1, &l2), 1.00);
+        assert_eq!(direc(&l1, &l2), DirectionName::West);
 
         let l1 = (3, 2);
         let l2 = (0, 0);
-        assert_eq!(direc(&l1, &l2), 1.00);
+        assert_eq!(direc(&l1, &l2), DirectionName::West);
     }
 
     #[test]

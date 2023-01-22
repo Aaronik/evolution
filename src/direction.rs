@@ -57,7 +57,7 @@ impl Direction {
 // TODO Still I'm feeling like with the numbers at least we should be able to switch.
 // So basically I want to say, from turn left, "return a Me minus one". Then get_forward_modifier
 // could be basically the same.
-#[derive(Debug, EnumIter, Clone)]
+#[derive(Debug, EnumIter, Clone, PartialEq)]
 pub enum DirectionName {
     North = 0,
     NorthEast = 1,
