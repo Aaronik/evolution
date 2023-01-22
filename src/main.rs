@@ -33,7 +33,7 @@ fn main() {
         neural_net_helper: &nnh,
         num_initial_lifeforms: 20,
         genome_size: 25,
-        mutation_rate: 0.001,
+        mutation_rate: 0.1,
         food_density: 30,
         num_inner_neurons,
         minimum_number_lifeforms: 15,
@@ -53,7 +53,7 @@ fn main() {
     // When we pause we greatly increase the tick rate to keep the loop from
     // cooking the CPUs. This is where we store the value to go back to.
     // Note we mutate this to adjust tick rate.
-    let mut saved_tick_rate = 250;
+    let mut saved_tick_rate = 0;
 
     // Will be adjusted within the loop as well
     let mut paused = false;

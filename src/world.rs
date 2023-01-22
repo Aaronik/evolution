@@ -116,9 +116,13 @@ impl<'a> World<'a> {
             }
         }
 
-        // Let the danger move around slowly
+        // Let the danger hunt
         if self.tics % self.props.danger_delay == 0 {
-            randomize(self.props.size, &mut self.danger);
+            let closest_lf_loc = closest_to(
+                &self.danger,
+                &self.lifeforms.iter().map(|(_, lf)| lf.location).collect(),
+            );
+            move_towards(self.props.size, &mut self.danger, &closest_lf_loc);
         }
 
         for lf_id in has_died {

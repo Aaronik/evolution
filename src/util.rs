@@ -92,51 +92,46 @@ pub fn dist_rel(world_size: usize, from: &(usize, usize), to: &(usize, usize)) -
     dist_abs(from, to) / farthest_possible
 }
 
-/// Returns
-/// 0.25 for north
-/// 0.50 for east
-/// 0.75 for south
-/// 1.00 for west
-/// 0.00 for same point
+/// Returns one of the four cardinal directions, and returns north if it's the same point.
 /// And assumes that the start point is in the bottom left corner.
-pub fn direc(from: &(usize, usize), to: &(usize, usize)) -> f32 {
+pub fn direc(from: &(usize, usize), to: &(usize, usize)) -> DirectionName {
     let x1 = from.0 as f32;
     let y1 = from.1 as f32;
     let x2 = to.0 as f32;
     let y2 = to.1 as f32;
 
-    if y2 < y1 && y2 + y1 > x2 + x1 {
-        return 0.25;
+    if y2 > y1 && y2 + y1 > x2 + x1 {
+        return DirectionName::North;
     } else if x2 > x1 && x2 + x1 > y2 + y1 {
-        return 0.5;
-    } else if y2 > y1 && y2 + y1 > x2 + x1 {
-        return 0.75;
+        return DirectionName::East;
+    } else if y2 < y1 && y2 + y1 > x2 + x1 {
+        return DirectionName::South;
     } else if x2 < x1 && x2 + x1 > y2 + y1 {
-        return 1.0;
+        return DirectionName::West;
     }
 
     if x2 == x1 {
-        if y2 > y1 {
+        if y2 < y1 {
             // straight down
-            return 0.75;
-        } else if y2 < y1 {
+            return DirectionName::South;
+        } else if y2 > y1 {
             // straight up
-            return 0.25;
+            return DirectionName::North;
         }
     }
 
     if y2 == y1 {
         if x2 > x1 {
             // straight right
-            return 0.5;
+            return DirectionName::East;
         } else if x2 < x1 {
             // straight left
-            return 1.0;
+            return DirectionName::West;
         }
     }
 
     // Otherwise it's the same point
-    0.0
+    DirectionName::North
 }
 
 /// Relocate one step randomly
@@ -253,6 +248,18 @@ pub fn rel_dir(
 
     // Now convert to a unit digit
     radians / std::f32::consts::PI
+}
+
+/// Takes a mutable subject and moves it one step towards a given object, each being a location
+/// TODO Currently only does cardinal directions but could also be updated to get all 8.
+pub fn move_towards(size: usize, subject: &mut (usize, usize), object: &(usize, usize)) {
+    match direc(subject, object) {
+        DirectionName::North => update_location(size, subject, &(0, 1)),
+        DirectionName::East => update_location(size, subject, &(1, 0)),
+        DirectionName::South => update_location(size, subject, &(0, -1)),
+        DirectionName::West => update_location(size, subject, &(-1, 0)),
+        _ => ()
+    }
 }
 
 #[cfg(test)]
