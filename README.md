@@ -13,7 +13,8 @@
 
 ## Things left undone
 
-* Making the runs more configurable from the command line.
+* Letting the lifeforms evolve the number of genes and inner neurons they have. Right now those values are fixed,
+  but it'd be really cool to see if there were some ideal values, or at least local maxima/minima.
 * Separating the main thread from the UI drawing thread. Instead of doing this, I'm leaving a less ideal
   solution of being able to pause the drawing from within the app itself.
 

@@ -474,7 +474,7 @@ where
         / world.lifeforms.len() as f32;
 
     items.push(
-        ListItem::new(format!("Avergae Age: {}", average_age))
+        ListItem::new(format!("Average Age: {}", average_age))
             .style(Style::default().fg(Color::Green)),
     );
 

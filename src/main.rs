@@ -10,6 +10,8 @@ use crossterm::{
 };
 use tui::{backend::CrosstermBackend, Terminal};
 
+use clap::Parser;
+
 use evolution::*;
 
 // TODO
@@ -22,24 +24,26 @@ use evolution::*;
 
 
 fn main() {
-    // Size of the world
-    let size = 50;
+    let args = Args::parse();
 
-    let num_inner_neurons = 3;
+    // Size of the world
+    let size = args.size;
+
+    let num_inner_neurons = args.num_inner_neurons;
 
     let nnh = NeuralNetHelper::new(num_inner_neurons);
 
     let world_props = WorldProps {
         size,
         neural_net_helper: &nnh,
-        num_initial_lifeforms: 20,
-        genome_size: 25,
-        mutation_rate: 0.1,
-        food_density: 30,
+        num_initial_lifeforms: args.num_initial_lifeforms,
+        genome_size: args.genome_size,
+        mutation_rate: args.mutation_rate,
+        food_density: args.food_density,
         num_inner_neurons,
-        minimum_number_lifeforms: 15,
-        danger_delay: 10,
-        danger_damage: 0.5,
+        minimum_number_lifeforms: args.minimum_number_lifeforms,
+        danger_delay: args.danger_delay,
+        danger_damage: args.danger_damage,
     };
 
     let world = World::new(world_props);
