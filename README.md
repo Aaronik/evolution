@@ -11,7 +11,7 @@ they're well enough fed. There's evolutionary pressure to avoid the danger, whic
 the faster lifeforms (scary, right?). There's evolutionary benefit to eating a lot of food. The Lifeforms can
 also attack each other, but it costs them health.
 
-The UI terminal based. It uses [tui-rs](https://github.com/fdehau/tui-rs).
+The UI is terminal based. It uses [tui-rs](https://github.com/fdehau/tui-rs).
 
 ## Properties of this app
 
