@@ -61,6 +61,7 @@ where
     let text = vec![Spans::from(
         "q = quit | p = pause | d = pause drawing | Up/Down = Select LifeForm | Left/Right = change tick rate",
     )];
+
     let paragraph = Paragraph::new(text).block(block);
 
     f.render_widget(paragraph, area);
@@ -488,7 +489,7 @@ where
 {
     let mut items: Vec<ListItem> = vec![];
 
-    for (event_type, description) in &world.events {
+    for (event_type, description) in world.events.iter().rev() {
         let color = match event_type {
             EventType::Death => Color::Blue,
             EventType::Creation => Color::Cyan,
@@ -497,8 +498,7 @@ where
             EventType::AsexuallyReproduce => Color::LightGreen,
         };
 
-        items.insert(
-            0,
+        items.push(
             ListItem::new(Span::from(Span::styled(
                 description,
                 Style::default().fg(color),
@@ -517,9 +517,6 @@ fn generate_neuron_hashmap(
     area: &Rect,
 ) -> HashMap<usize, (String, (f64, f64))> {
     let max_names_per_line = neural_net.input_neurons.len() as u16 + 1;
-
-    // TODO Having a static max per line is alright, but it'd be nicer if it measured the length of
-    // the neuron names, choosing dynamically.
 
     let input_neuron_spacing = area.width as f64 / (max_names_per_line) as f64;
     let inner_neuron_spacing = area.width as f64 / (neural_net.inner_neurons.len() + 1) as f64;

@@ -3,6 +3,8 @@ use rand::{thread_rng, Rng};
 use rayon::prelude::*;
 use std::collections::{HashMap, HashSet};
 
+const EVENTS_LENGTH: usize = 30;
+
 #[derive(Debug)]
 pub struct WorldProps<'a> {
     pub size: usize,
@@ -69,7 +71,7 @@ impl<'a> World<'a> {
             lifeforms,
             oscillator: 0.0,
             tics: 0,
-            events: vec![],
+            events: Vec::with_capacity(EVENTS_LENGTH * 3),
         }
     }
 
@@ -116,6 +118,11 @@ impl<'a> World<'a> {
 
             if lf.health <= 0.0 {
                 has_died.push(lf.id);
+            }
+
+            // Don't need to show more than 30 events
+            if self.events.len() > EVENTS_LENGTH * 2 {
+                self.events.drain(..EVENTS_LENGTH);
             }
         }
 
@@ -405,7 +412,7 @@ impl<'a> World<'a> {
                     InputNeuronType::Health => lifeform.health,
                     InputNeuronType::Hunger => lifeform.hunger,
                     InputNeuronType::PopulationDensity => num_lifeforms as f32 / size.pow(2) as f32,
-                    InputNeuronType::NeighborhoodDensity => (num_in_vicinity / num_lifeforms) as f32,
+                    InputNeuronType::NeighborhoodDensity => num_in_vicinity as f32 / num_lifeforms as f32,
                     InputNeuronType::DirectionToFood => rel_dir(loc, orm, closest_food),
                     InputNeuronType::DistanceToFood => dist_rel(size, loc, closest_food),
                     InputNeuronType::DirectionToDanger => rel_dir(loc, orm, &self.danger),

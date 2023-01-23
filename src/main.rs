@@ -62,8 +62,8 @@ fn main() {
     // Which lifeform is currently selected within the UI
     let mut selected_lf_id: Option<usize> = None;
 
-    // TODO So the UI is only capable of drawing like 100 frames per second, even if the program
-    // can go much faster than that. So first step to speed up will be to extract the program out
+    // TODO So the UI is only capable of drawing like 1000 frames per second, even if the program
+    // can go much faster than that. So one step to speed up will be to extract the program out
     // into a different thread.
     // A hack can be brought in by skipping draw frames. If you have a loop counter and only run
     // terminal.draw on certain iterations of that loop, it works pretty alright and the program
