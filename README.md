@@ -1,3 +1,29 @@
+# An attempt at building an evolutionary ecosystem
+
+## Discoveries
+
+* Already I've seen the lifeforms coordinate to keep the danger in the corner by every so often
+  sacrificing one of themselves as bait. This is incredible evolutionary behavior and demonstrates the
+  power of group wise evolution even if it costs the individual.
+* The neural calculation algorithm paired with the Rust programming language worked out splendidly.
+  This program performs parallel recursive network calculations very efficiently, doing thousands of
+  iterations, for dozens of lifeforms, each with their own neural net, per second. This is the case even
+  on Dellbert, the mid grade, many years old laptop I built this on, and with lifeforms with 10 inner neurons
+  and a genome of size 75.
+
+## Things left undone
+
+* Making the runs more configurable from the command line.
+* Separating the main thread from the UI drawing thread. Instead of doing this, I'm leaving a less ideal
+  solution of being able to pause the drawing from within the app itself.
+
+## For Next Time
+* The console UI is fun, but I'd definitely like some visual medium that is more expressive.
+* I'd love to have a richer set of output actions. Maybe some that can facilitate more social
+  behaviors.
+
+---
+
 # WHAT WILL THIS BE?
 
 Ecosystem Simulation

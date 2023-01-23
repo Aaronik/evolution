@@ -45,7 +45,7 @@ impl Evolver {
         let from_to_weight = thread_rng().gen_range(0..3);
 
         if from_to_weight == 0 {
-            // TODO Maybe we should nudge this weight rather than raplace it?
+            // TODO Maybe we should nudge this weight rather than replace it?
             genome.genes[idx].weight = Genome::random_weight();
         } else if from_to_weight == 1 {
             genome.genes[idx].from = nnh.random_from_neuron(Some(genome.genes[idx].from));

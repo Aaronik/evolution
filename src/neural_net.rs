@@ -191,6 +191,12 @@ fn get_id_not_id(ids: &Vec<usize>, mut idx: usize, not_id: Option<usize>) -> usi
         }
     }
 
+    // On some occasions we may have a length one vector.
+    // In these cases, we'll just return the first id.
+    if idx >= ids.len() {
+        idx = 0;
+    }
+
     id = ids[idx];
 
     id

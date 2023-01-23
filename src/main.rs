@@ -20,6 +20,7 @@ use evolution::*;
 // * Let lifeforms know when they're up against the edge (ie. distance to edge, either distance to
 // every edge or better would be distance to edge _in front_ of the lf)
 
+
 fn main() {
     // Size of the world
     let size = 50;
@@ -41,8 +42,12 @@ fn main() {
         danger_damage: 0.5,
     };
 
-    let mut world = World::new(world_props);
+    let world = World::new(world_props);
 
+    run_app(size, world);
+}
+
+fn run_app(size: usize, mut world: World) {
     enable_raw_mode().unwrap();
     let mut stdout = io::stdout();
     execute!(stdout, EnterAlternateScreen, EnableMouseCapture).unwrap();
@@ -62,24 +67,11 @@ fn main() {
     // Which lifeform is currently selected within the UI
     let mut selected_lf_id: Option<usize> = None;
 
-    // TODO So the UI is only capable of drawing like 1000 frames per second, even if the program
-    // can go much faster than that. So one step to speed up will be to extract the program out
-    // into a different thread.
-    // A hack can be brought in by skipping draw frames. If you have a loop counter and only run
-    // terminal.draw on certain iterations of that loop, it works pretty alright and the program
-    // can run way faster. But really it should just be that the UI keeps up with the program as
-    // best it can. If the program's running faster than the UI, then the ui skips frames.
-
     let mut pause_info = 0;
-
     let mut should_draw = true;
 
     loop {
-        let lf = if let Some(id) = selected_lf_id {
-            world.lifeforms.get(&id)
-        } else {
-            None
-        };
+        let lf = selected_lf_id.and_then(|id| world.lifeforms.get(&id));
 
         if should_draw {
             terminal
@@ -150,13 +142,8 @@ fn main() {
                 };
 
                 // These are handy for when the terminal is set to not draw.
-                // TODO These should be removed when the UI thread just tries to keep up with the main
-                // thread.
-                let lf = if let Some(id) = selected_lf_id {
-                    world.lifeforms.get(&id)
-                } else {
-                    None
-                };
+                let lf = selected_lf_id.and_then(|id| world.lifeforms.get(&id));
+
                 terminal
                     .draw(|f| ui(f, size, &world, lf, saved_tick_rate))
                     .unwrap();
