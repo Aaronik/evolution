@@ -18,9 +18,11 @@ use evolution::*;
 // * Get timestamps for events
 // * Make rel distance go fro -1 to 1 (more sensitivity)
 // * Let food be a thing that, after it gets a certain age, itself splits into multiple of it. That
-//   way it's like plants, getting energy from the ambient system.
+//  way it's like plants, getting energy from the ambient system.
 // * Let lifeforms know when they're up against the edge (ie. distance to edge, either distance to
 // every edge or better would be distance to edge _in front_ of the lf)
+// * Should lifeforms leave behind food when they die? This would kind of add a little pressure to
+// atack each other
 
 
 fn main() {
