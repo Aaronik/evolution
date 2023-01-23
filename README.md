@@ -1,4 +1,4 @@
-# An attempt at building an evolutionary ecosystem
+# An self contained evolutionary ecosystem
 
 ![image](https://user-images.githubusercontent.com/1324601/214135720-d1641448-44b4-4993-baeb-b05888d5d603.png)
 
