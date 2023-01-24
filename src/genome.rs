@@ -28,7 +28,7 @@ pub struct GenomeProps<'a> {
 // You could follow this around as many times as you like. This is what gives this app the
 // infinitely recursive property (although the app cuts off the number of computations done before
 // it hits inifity :)
-type Seed = HashMap<usize, Vec<usize>>;
+type NeuronGraph = HashMap<usize, Vec<usize>>;
 
 #[derive(Debug, Clone)]
 pub struct Genome {
@@ -104,14 +104,14 @@ fn compute_ordered_gene_indices(genes: &Vec<Gene>, nnh: &NeuralNetHelper) -> Vec
     // No matter what, all the genes that can be followed will get followed at least once.
     let max_gene_follows = nnh.inner_neurons.len() + 2;
 
-    let mut seed: Seed = HashMap::new();
+    let mut neuron_graph: NeuronGraph = HashMap::new();
     let mut inputs: Vec<usize> = vec![];
     for (idx, gene) in genes.iter().enumerate() {
         if let GeneType::InputGene = Genome::classify_gene(nnh, &gene) {
             inputs.push(gene.from);
         }
 
-        seed.entry(gene.from).or_insert(vec![]).push(idx);
+        neuron_graph.entry(gene.from).or_insert(vec![]).push(idx);
     }
 
     // gene id, number of times seen
@@ -122,7 +122,7 @@ fn compute_ordered_gene_indices(genes: &Vec<Gene>, nnh: &NeuralNetHelper) -> Vec
     // * Append all genes from each input_id to ordered_genes, incrementing follow_count
     // for each TO.
     for input_id in inputs {
-        for gene_idx in &seed[&input_id] {
+        for gene_idx in &neuron_graph[&input_id] {
             ordered_gene_indices.push(*gene_idx);
         }
     }
@@ -139,7 +139,7 @@ fn compute_ordered_gene_indices(genes: &Vec<Gene>, nnh: &NeuralNetHelper) -> Vec
         // only if it hasn't exceeded its follow_count
         if let Some(count) = follow_count.get_mut(&gene.id) {
             if *count < max_gene_follows {
-                for gene_idx in &seed[&gene.from] {
+                for gene_idx in &neuron_graph[&gene.from] {
                     ordered_gene_indices.push(*gene_idx);
                 }
 
@@ -147,7 +147,7 @@ fn compute_ordered_gene_indices(genes: &Vec<Gene>, nnh: &NeuralNetHelper) -> Vec
             }
         } else {
             follow_count.insert(gene.id, 1);
-            for gene_idx in &seed[&gene.from] {
+            for gene_idx in &neuron_graph[&gene.from] {
                 ordered_gene_indices.push(*gene_idx);
             }
         }
