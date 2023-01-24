@@ -24,6 +24,10 @@ pub struct GenomeProps<'a> {
 }
 
 // Hashmap of neuron id to vec of neuron ids
+// This is a pretty cool data structure -- it's basically a directed, infinitely cyclic graph.
+// You could follow this around as many times as you like. This is what gives this app the
+// infinitely recursive property (although the app cuts off the number of computations done before
+// it hits inifity :)
 type Seed = HashMap<usize, Vec<usize>>;
 
 #[derive(Debug, Clone)]

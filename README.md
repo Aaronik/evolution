@@ -27,6 +27,9 @@ The UI is terminal based. It uses [tui-rs](https://github.com/fdehau/tui-rs).
   followed one by one and have the neural net calculations done on them (which looks like `tanh(sum(inputs))`).
   Find that [here(ish)](https://github.com/Aaronik/evolution/blob/master/src/genome.rs#L98), with the code that walks that
   vector [around here](https://github.com/Aaronik/evolution/blob/a16f256aad4712f59ebc4f77d6e37b05c1a92bc5/src/lifeform.rs#L45).
+* Within that neural net calculation function is this data structure I'm calling [Seed](https://github.com/Aaronik/evolution/blob/f8f31aceb834619b3f4342fd77fe4820088f9791/src/genome.rs#L31),
+  because it's the basis of an infinitely recursive tree, a cyclic graph. If you know the real name of this data structure
+  please do let me know :)
 
 ## Discoveries
 
