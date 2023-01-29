@@ -6,13 +6,12 @@ Based off of this amazing youtube video: https://youtu.be/N3tRFayqVtk?t=1433
 
 ## What is it?
 
-I wanted to make some kind of evolving ecosystem with lifeforms with
-neural nets. I didn't want it to use frame based evolution, where all the
-lifeforms do their thing for a certain number of iterations, then the app
-stops, measures each one's fitness, and reproduces the most successful ones.
-Instead, I wanted it to be more like life we see here in our
-universe, where time continues on without these breaks, and generations of
-lifeforms can overlap.
+I wanted to make some kind of ecosystem with lifeforms or automata that each
+have a neural net and that evolve over time from generation to generation. I wanted
+there to be continuity of time, just like in our universe, where generations of lifeforms
+can overlap with each other. This is in contrast to the system in the YouTube video
+above, where every generation lives for a certain number of cycles, and then the population
+is measured and culled/reproduced.
 
 This is the result -- a small world with lifeforms, food, danger. The
 lifeforms reproduce when they eat enough. The danger is radioactive and
