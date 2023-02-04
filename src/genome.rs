@@ -100,6 +100,11 @@ impl Genome {
 /// number sf times per gene, in case there is a loop. This is the best way I could think of to
 /// approximate biological neural nets.
 fn compute_ordered_gene_indices(genes: &Vec<Gene>, nnh: &NeuralNetHelper) -> Vec<usize> {
+    // The neural net can have recursive patterns -- one neuron can be connected to itself,
+    // or a group of two can connect back and forth to each other, or more, etc.
+    // This number determines how many times a specific gene will be followed, therefore how
+    // much influence one connection will have overall in the net.
+    //
     // TODO I don't think this is necessary any more, we can make this an arbitrary number.
     // No matter what, all the genes that can be followed will get followed at least once.
     let max_gene_follows = nnh.inner_neurons.len() + 2;

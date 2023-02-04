@@ -117,6 +117,7 @@ impl NeuralNetHelper {
     }
 }
 
+// Map of neuron id -> ..
 #[derive(Debug, Clone)]
 pub struct NeuralNet {
     pub input_neurons: HashMap<usize, (InputNeuronType, InputNeuron)>,

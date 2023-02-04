@@ -44,6 +44,7 @@ impl Evolver {
         // Which of the three fields are we going to modify?
         let from_to_weight = thread_rng().gen_range(0..3);
 
+        // Chooses one of weight, from, or to, from one of the genes, and changes it
         if from_to_weight == 0 {
             // TODO Maybe we should nudge this weight rather than replace it?
             genome.genes[idx].weight = Genome::random_weight();

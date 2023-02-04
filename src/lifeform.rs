@@ -41,13 +41,16 @@ impl LifeForm {
         }
     }
 
-    /// returns a list of probabilities associated with output neuron types
+    /// Returns a list of probabilities associated with output neuron types.
+    /// This is the function that consumes the pre-built vector that signifies the order of genes /
+    /// the number of times to follow each gene. It consumes that and does the relevant math to
+    /// compute the final values of the output neurons.
     pub fn run_neural_net(&self, nnh: &NeuralNetHelper) -> Vec<(OutputNeuronType, f32)> {
         // neuron id, running sum
         let mut running_sums: HashMap<usize, f32> = HashMap::new();
 
-        // Idea here is to go through each gene in the ordered genes here and if there's an entry
-        // in the running sums map, add that... Trailing off b/c I have another idea.
+        // Idea here is to go through each gene in the ordered genes and if there's an entry
+        // in the running sums map, add tanh(sum(inputs)) to the 'to' gene.
         for gene_idx in &self.genome.ordered_gene_indices {
             let gene = &self.genome.genes[*gene_idx];
 

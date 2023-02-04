@@ -12,7 +12,7 @@ use tui::{backend::CrosstermBackend, Terminal};
 
 use clap::Parser;
 
-use evolution::*;
+use evolution_v1::*;
 
 // TODO
 // * Get timestamps for events
