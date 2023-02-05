@@ -165,7 +165,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "evolution_v1"
+name = "evolution"
 version = "0.1.0"
 dependencies = [
  "clap",
